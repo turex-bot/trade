@@ -5,6 +5,7 @@ import { PageHeader, Modal, Badge, FormField, Tabs } from '../components/ui';
 import { useData } from '../context/DataContext';
 import { useToast } from '../components/Toast';
 import { formatCurrency, formatDate } from '../data/mockData';
+import { formatVolumeM3, formatNumberID } from '../utils/logVolumeFormatter';
 
 export default function Orders() {
   const { orders, companies, suppliers, woodSpecs, prices, addOrder, updateOrder } = useData();
@@ -109,7 +110,7 @@ export default function Orders() {
                       <td className="text-right text-[13px] font-semibold text-[#0f172a]">
                         {order.items.reduce((sum, item) => sum + item.numberOfLogs, 0)} batang
                       </td>
-                      <td className="text-right text-[13px] font-medium text-[#0f172a]">{order.totalVolume.toFixed(2)} m³</td>
+                      <td className="text-right text-[13px] font-medium text-[#0f172a]">{formatVolumeM3(order.totalVolume * 1000)} m³</td>
                       <td className="text-right text-[13px] font-medium text-[#0f172a]">{formatCurrency(order.totalValue)}</td>
                       <td className="text-center">{getStatusBadge(order.status)}</td>
                       <td className="text-center">
@@ -188,9 +189,9 @@ export default function Orders() {
                     {selectedOrder.items.map(item => (
                       <tr key={item.id}>
                         <td className="text-[12px] text-[#0f172a] font-medium">{item.woodSpecName}</td>
-                        <td className="text-right text-[12px] font-semibold">{item.numberOfLogs} batang</td>
-                        <td className="text-right text-[12px] text-[#64748b]">{item.volumePerLog.toFixed(3)} m³</td>
-                        <td className="text-right text-[12px] font-medium">{item.volume.toFixed(2)} m³</td>
+                        <td className="text-right text-[12px] font-semibold">{formatNumberID(item.numberOfLogs)} batang</td>
+                        <td className="text-right text-[12px] text-[#64748b]">{formatVolumeM3((item.volumeDm3 / item.numberOfLogs))} m³</td>
+                        <td className="text-right text-[12px] font-medium">{formatVolumeM3(item.volumeDm3)} m³</td>
                         <td className="text-right text-[12px] text-[#166534]">{formatCurrency(item.sellPricePerLog)}</td>
                         <td className="text-right text-[12px] font-bold text-[#0f172a]">{formatCurrency(item.totalSellValue)}</td>
                       </tr>
@@ -203,7 +204,7 @@ export default function Orders() {
             <div className="bg-[#f0fdf4] rounded-lg p-4 flex items-center justify-between border border-[#dcfce7]">
               <div>
                 <p className="text-[11px] text-[#166534]">Total Volume</p>
-                <p className="text-[15px] font-bold text-[#166534]">{selectedOrder.totalVolume.toFixed(2)} m³</p>
+                <p className="text-[15px] font-bold text-[#166534]">{formatVolumeM3(selectedOrder.totalVolume * 1000)} m³</p>
               </div>
               <div className="text-right">
                 <p className="text-[11px] text-[#166534]">Total Nilai</p>
@@ -263,13 +264,20 @@ function CreateOrderModal({ open, onClose, companies, suppliers, woodSpecs, pric
   const selectedCompany = companies.find(c => c.id === companyId);
   const selectedSupplier = suppliers.find(s => s.id === supplierId);
 
-  // Calculate totals
+  // Calculate totals using average diameter for estimation
   const totals = orderItems.reduce((acc, item) => {
     const spec = woodSpecs.find(s => s.id === item.specId);
     const price = prices.find(p => p.woodSpecId === item.specId && p.isActive);
     
     if (spec && price && item.numberOfLogs > 0) {
-      const volume = item.numberOfLogs * spec.volumePerLog;
+      // Use average diameter for estimation in the form
+      const avgDiameter = (spec.diameterMin + spec.diameterMax) / 2;
+      const radiusCm = avgDiameter / 2;
+      const lengthCm = spec.standardLength * 100;
+      const volumePerLogCm3 = Math.PI * radiusCm * radiusCm * lengthCm;
+      const volumePerLogDm3 = volumePerLogCm3 / 1000;
+      const volume = (item.numberOfLogs * volumePerLogDm3) / 1000; // convert to m³
+      
       const sellValue = item.numberOfLogs * price.sellPricePerLog;
       const buyValue = item.numberOfLogs * price.buyPricePerLog;
       
@@ -321,19 +329,37 @@ function CreateOrderModal({ open, onClose, companies, suppliers, woodSpecs, pric
       return;
     }
 
-    // Build order items
+    // Build order items with actual log diameters
     const items: OrderItem[] = validItems.map((item, idx) => {
       const spec = woodSpecs.find(s => s.id === item.specId)!;
       const price = prices.find(p => p.woodSpecId === item.specId && p.isActive)!;
-      const volume = item.numberOfLogs * spec.volumePerLog;
+      
+      // Generate random diameters within the spec's range for each log
+      const logDiameters: number[] = [];
+      for (let i = 0; i < item.numberOfLogs; i++) {
+        const randomDiameter = Math.floor(Math.random() * (spec.diameterMax - spec.diameterMin + 1)) + spec.diameterMin;
+        logDiameters.push(randomDiameter);
+      }
+      
+      // Calculate volume per log based on actual diameters
+      const volumeDm3 = logDiameters.reduce((total, diameter) => {
+        const radiusCm = diameter / 2;
+        const lengthCm = spec.standardLength * 100;
+        const volumeCm3 = Math.PI * radiusCm * radiusCm * lengthCm;
+        return total + (volumeCm3 / 1000); // convert to dm³
+      }, 0);
+      
+      const volumeM3 = volumeDm3 / 1000; // convert to m³
       
       return {
         id: Math.random().toString(36).substr(2, 9),
         woodSpecId: item.specId,
         woodSpecName: `${spec.woodType} ${spec.diameterRange} ${spec.grade}`,
         numberOfLogs: item.numberOfLogs,
-        volumePerLog: spec.volumePerLog,
-        volume: volume,
+        logDiameters: logDiameters,
+        logLength: spec.standardLength,
+        volumeDm3: Math.round(volumeDm3 * 100) / 100,
+        volume: Math.round(volumeM3 * 1000) / 1000,
         buyPricePerLog: price.buyPricePerLog,
         sellPricePerLog: price.sellPricePerLog,
         buyPrice: price.buyPrice,

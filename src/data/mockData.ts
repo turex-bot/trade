@@ -71,8 +71,10 @@ export interface OrderItem {
   woodSpecName: string;
   woodSpecId: string;
   numberOfLogs: number; // jumlah batang
-  volumePerLog: number; // m³ per batang
-  volume: number; // total volume = numberOfLogs × volumePerLog
+  logDiameters: number[]; // diameter aktual per batang dalam cm (misal: [21, 22, 23, 21, 22])
+  logLength: number; // panjang batang dalam meter
+  volumeDm3: number; // total volume dalam dm³ (hasil kalkulasi per batang)
+  volume: number; // total volume dalam m³ (volumeDm3 / 1000)
   buyPricePerLog: number; // harga beli per batang
   sellPricePerLog: number; // harga jual per batang
   buyPrice: number; // harga beli per m³ (untuk referensi)

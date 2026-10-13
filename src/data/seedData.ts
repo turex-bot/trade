@@ -18,32 +18,43 @@
 
 import { Supplier, Company, WoodSpec, Price, Order, OrderItem, Delivery, Invoice, Payment } from './mockData';
 
-// Helper function untuk membuat OrderItem
+// Helper function untuk membuat OrderItem dengan diameter aktual per batang
 const createOrderItem = (
   id: string,
   woodSpecId: string,
   woodSpecName: string,
-  numberOfLogs: number,
-  volumePerLog: number,
+  logDiameters: number[], // diameter aktual per batang dalam cm
+  logLength: number, // panjang batang dalam meter
   buyPricePerLog: number,
   sellPricePerLog: number,
   buyPricePerM3: number,
   sellPricePerM3: number
 ): OrderItem => {
-  const volume = numberOfLogs * volumePerLog;
+  // Hitung volume per batang berdasarkan diameter aktual
+  const volumeDm3 = logDiameters.reduce((total, diameter) => {
+    const radiusCm = diameter / 2;
+    const lengthCm = logLength * 100;
+    const volumeCm3 = Math.PI * radiusCm * radiusCm * lengthCm;
+    return total + (volumeCm3 / 1000); // konversi ke dm³
+  }, 0);
+  
+  const volumeM3 = volumeDm3 / 1000; // konversi ke m³
+  
   return {
     id,
     woodSpecId,
     woodSpecName,
-    numberOfLogs,
-    volumePerLog,
-    volume,
+    numberOfLogs: logDiameters.length,
+    logDiameters,
+    logLength,
+    volumeDm3: Math.round(volumeDm3 * 100) / 100,
+    volume: Math.round(volumeM3 * 1000) / 1000,
     buyPricePerLog,
     sellPricePerLog,
     buyPrice: buyPricePerM3,
     sellPrice: sellPricePerM3,
-    totalBuyValue: numberOfLogs * buyPricePerLog,
-    totalSellValue: numberOfLogs * sellPricePerLog,
+    totalBuyValue: logDiameters.length * buyPricePerLog,
+    totalSellValue: logDiameters.length * sellPricePerLog,
   };
 };
 
@@ -220,6 +231,15 @@ export function seedPrices(): Price[] {
 
 // Seed Orders
 export function seedOrders(): Order[] {
+  // Generate sample diameters for testing
+  const generateDiameters = (count: number, min: number, max: number): number[] => {
+    const diameters: number[] = [];
+    for (let i = 0; i < count; i++) {
+      diameters.push(Math.floor(Math.random() * (max - min + 1)) + min);
+    }
+    return diameters;
+  };
+
   return [
     { 
       id: '1', 
@@ -230,7 +250,7 @@ export function seedOrders(): Order[] {
       supplierId: '1', 
       supplierName: 'Depo Kayu Makmur', 
       status: 'paid', 
-      items: [createOrderItem('1', '1', 'Meranti 20-30cm Grade A', 255, 0.196, 235200, 238140, 1200000, 1215000)],
+      items: [createOrderItem('1', '1', 'Meranti 20-30cm Premium', generateDiameters(255, 20, 30), 4, 235200, 238140, 1200000, 1215000)],
       totalVolume: 50, 
       totalValue: 60750000, 
       notes: 'Pesanan rutin Januari' 
@@ -244,7 +264,7 @@ export function seedOrders(): Order[] {
       supplierId: '2', 
       supplierName: 'Depo Kayu Sejahtera', 
       status: 'invoiced', 
-      items: [createOrderItem('2', '3', 'Keruing 20-30cm Grade B', 179, 0.196, 186200, 189140, 950000, 965000)],
+      items: [createOrderItem('2', '3', 'Keruing 20-30cm Reguler', generateDiameters(179, 20, 30), 4, 186200, 189140, 950000, 965000)],
       totalVolume: 35, 
       totalValue: 33775000, 
       notes: '' 
