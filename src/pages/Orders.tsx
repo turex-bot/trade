@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Plus, Search, Eye, AlertTriangle, FileText, Truck, Package, CheckCircle2 } from 'lucide-react';
-import { orders, Order, formatCurrency, formatDate } from '../data/mockData';
+import { Plus, Search, Eye, AlertTriangle, FileText, Truck, Package, CheckCircle2, Calculator } from 'lucide-react';
+import { orders, Order, woodSpecs, prices, formatCurrency, formatDate } from '../data/mockData';
 import { PageHeader, Modal, Badge, FormField, Tabs } from '../components/ui';
 
 export default function Orders() {
@@ -83,6 +83,7 @@ export default function Orders() {
                 <th>Tanggal</th>
                 <th>Perusahaan</th>
                 <th>Depo</th>
+                <th className="text-right">Jumlah Batang</th>
                 <th className="text-right">Volume</th>
                 <th className="text-right">Nilai</th>
                 <th className="text-center">Status</th>
@@ -98,7 +99,10 @@ export default function Orders() {
                   <td className="text-[12px] text-[#64748b]">{formatDate(order.orderDate)}</td>
                   <td className="text-[13px] text-[#0f172a] font-medium">{order.companyName}</td>
                   <td className="text-[12px] text-[#64748b]">{order.supplierName}</td>
-                  <td className="text-right text-[13px] font-medium text-[#0f172a]">{order.totalVolume} m³</td>
+                  <td className="text-right text-[13px] font-semibold text-[#0f172a]">
+                    {order.items.reduce((sum, item) => sum + item.numberOfLogs, 0)} batang
+                  </td>
+                  <td className="text-right text-[13px] font-medium text-[#0f172a]">{order.totalVolume.toFixed(2)} m³</td>
                   <td className="text-right text-[13px] font-medium text-[#0f172a]">{formatCurrency(order.totalValue)}</td>
                   <td className="text-center">{getStatusBadge(order.status)}</td>
                   <td className="text-center">
@@ -154,18 +158,22 @@ export default function Orders() {
                   <thead>
                     <tr>
                       <th>Spesifikasi</th>
-                      <th className="text-right">Volume</th>
-                      <th className="text-right">Harga Beli</th>
-                      <th className="text-right">Harga Jual</th>
+                      <th className="text-right">Jumlah Batang</th>
+                      <th className="text-right">Volume/Batang</th>
+                      <th className="text-right">Total Volume</th>
+                      <th className="text-right">Harga/Batang</th>
+                      <th className="text-right">Total Nilai</th>
                     </tr>
                   </thead>
                   <tbody>
                     {selectedOrder.items.map(item => (
                       <tr key={item.id}>
-                        <td className="text-[12px] text-[#0f172a]">{item.woodSpecName}</td>
-                        <td className="text-right text-[12px]">{item.volume} m³</td>
-                        <td className="text-right text-[12px] text-[#64748b]">{formatCurrency(item.buyPrice)}</td>
-                        <td className="text-right text-[12px] font-medium text-[#166534]">{formatCurrency(item.sellPrice)}</td>
+                        <td className="text-[12px] text-[#0f172a] font-medium">{item.woodSpecName}</td>
+                        <td className="text-right text-[12px] font-semibold">{item.numberOfLogs} batang</td>
+                        <td className="text-right text-[12px] text-[#64748b]">{item.volumePerLog.toFixed(3)} m³</td>
+                        <td className="text-right text-[12px] font-medium">{item.volume.toFixed(2)} m³</td>
+                        <td className="text-right text-[12px] text-[#166534]">{formatCurrency(item.sellPricePerLog)}</td>
+                        <td className="text-right text-[12px] font-bold text-[#0f172a]">{formatCurrency(item.totalSellValue)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -195,70 +203,213 @@ export default function Orders() {
       </Modal>
 
       {/* Create Order Modal */}
-      <Modal
-        open={showForm}
-        onClose={() => setShowForm(false)}
-        title="Buat Pesanan Baru"
-        subtitle="Buat pesanan kayu dari perusahaan plywood"
-        size="lg"
-        footer={
-          <>
-            <button onClick={() => setShowForm(false)} className="btn btn-secondary">Batal</button>
-            <button onClick={() => setShowForm(false)} className="btn btn-primary">Buat Pesanan</button>
-          </>
-        }
-      >
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <FormField label="Perusahaan Plywood" required>
-              <select className="input-field">
-                <option value="">Pilih Perusahaan</option>
-                <option>PT. Plywood Nusantara</option>
-                <option>PT. Kayu Jaya Abadi</option>
-                <option>PT. Multi Plywood Indonesia</option>
-              </select>
-            </FormField>
-            <FormField label="Depo / Supplier" required>
-              <select className="input-field">
-                <option value="">Pilih Depo</option>
-                <option>Depo Kayu Makmur</option>
-                <option>Depo Kayu Sejahtera</option>
-                <option>Depo Kayu Lestari</option>
-              </select>
-            </FormField>
-          </div>
-          <FormField label="Tanggal Order" required>
-            <input type="date" className="input-field" />
+      <CreateOrderModal open={showForm} onClose={() => setShowForm(false)} />
+    </div>
+  );
+}
+
+// Create Order Modal Component dengan logika batang → kubikasi otomatis
+function CreateOrderModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const [selectedSpecId, setSelectedSpecId] = useState('');
+  const [numberOfLogs, setNumberOfLogs] = useState<number>(0);
+
+  const selectedSpec = woodSpecs.find(s => s.id === selectedSpecId);
+  const selectedPrice = prices.find(p => p.woodSpecId === selectedSpecId && p.isActive);
+
+  // Auto-kalkulasi kubikasi
+  const autoVolume = selectedSpec && numberOfLogs > 0 
+    ? numberOfLogs * selectedSpec.volumePerLog 
+    : 0;
+
+  // Auto-kalkulasi harga
+  const autoBuyValue = selectedPrice && numberOfLogs > 0
+    ? numberOfLogs * selectedPrice.buyPricePerLog
+    : 0;
+  
+  const autoSellValue = selectedPrice && numberOfLogs > 0
+    ? numberOfLogs * selectedPrice.sellPricePerLog
+    : 0;
+
+  const handleReset = () => {
+    setSelectedSpecId('');
+    setNumberOfLogs(0);
+  };
+
+  return (
+    <Modal
+      open={open}
+      onClose={() => { onClose(); handleReset(); }}
+      title="Buat Pesanan Baru"
+      subtitle="Input jumlah batang, kubikasi dihitung otomatis"
+      size="lg"
+      footer={
+        <>
+          <button onClick={() => { onClose(); handleReset(); }} className="btn btn-secondary">Batal</button>
+          <button 
+            onClick={() => { onClose(); handleReset(); }} 
+            className="btn btn-primary"
+            disabled={!selectedSpecId || numberOfLogs <= 0}
+          >
+            Buat Pesanan
+          </button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        <div className="grid grid-cols-2 gap-4">
+          <FormField label="Perusahaan Plywood" required>
+            <select className="input-field">
+              <option value="">Pilih Perusahaan</option>
+              <option>PT. Plywood Nusantara</option>
+              <option>PT. Kayu Jaya Abadi</option>
+              <option>PT. Multi Plywood Indonesia</option>
+            </select>
           </FormField>
-
-          <div>
-            <p className="text-[12px] font-medium text-[#334155] mb-2">Item Kayu</p>
-            <div className="border border-[#e2e8f0] rounded-lg p-4 space-y-3 bg-[#f8fafc]">
-              <div className="grid grid-cols-3 gap-3">
-                <select className="input-field col-span-2">
-                  <option value="">Pilih Spesifikasi</option>
-                  <option>Meranti 20-30cm Grade A</option>
-                  <option>Keruing 20-30cm Grade B</option>
-                </select>
-                <input type="number" placeholder="Volume (m³)" className="input-field" />
-              </div>
-              <button className="text-[12px] text-[#166534] font-medium hover:underline">+ Tambah Item</button>
-            </div>
-          </div>
-
-          <div className="bg-[#fefce8] border border-[#fef08a] rounded-lg p-3 flex items-start gap-2">
-            <AlertTriangle className="w-4 h-4 text-[#a16207] mt-0.5 flex-shrink-0" />
-            <div>
-              <p className="text-[12px] font-medium text-[#713f12]">Perhatian Credit Limit</p>
-              <p className="text-[11px] text-[#854d0e] mt-0.5">Pastikan total piutang + nilai pesanan tidak melebihi credit limit perusahaan.</p>
-            </div>
-          </div>
-
-          <FormField label="Catatan">
-            <textarea className="input-field min-h-[60px] resize-none" placeholder="Catatan tambahan..." />
+          <FormField label="Depo / Supplier" required>
+            <select className="input-field">
+              <option value="">Pilih Depo</option>
+              <option>Depo Kayu Makmur</option>
+              <option>Depo Kayu Sejahtera</option>
+              <option>Depo Kayu Lestari</option>
+            </select>
           </FormField>
         </div>
-      </Modal>
-    </div>
+        
+        <FormField label="Tanggal Order" required>
+          <input type="date" className="input-field" defaultValue={new Date().toISOString().split('T')[0]} />
+        </FormField>
+
+        {/* Item Kayu dengan Logika Batang → Kubikasi */}
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <Calculator className="w-4 h-4 text-[#166534]" />
+            <p className="text-[13px] font-semibold text-[#0f172a]">Item Kayu</p>
+          </div>
+          
+          <div className="border border-[#e2e8f0] rounded-lg p-4 space-y-4 bg-[#f8fafc]">
+            {/* Pilih Spesifikasi */}
+            <FormField label="Spesifikasi Kayu" required hint="Pilih jenis dan diameter kayu">
+              <select 
+                className="input-field"
+                value={selectedSpecId}
+                onChange={(e) => {
+                  setSelectedSpecId(e.target.value);
+                  setNumberOfLogs(0);
+                }}
+              >
+                <option value="">-- Pilih Spesifikasi --</option>
+                {woodSpecs.map(spec => (
+                  <option key={spec.id} value={spec.id}>
+                    {spec.woodType} {spec.diameterRange} Grade {spec.grade}
+                  </option>
+                ))}
+              </select>
+            </FormField>
+
+            {/* Info Spesifikasi */}
+            {selectedSpec && (
+              <div className="bg-white rounded-lg p-3 border border-[#e2e8f0]">
+                <div className="grid grid-cols-3 gap-3 text-[12px]">
+                  <div>
+                    <p className="text-[#64748b]">Diameter</p>
+                    <p className="font-semibold text-[#0f172a]">{selectedSpec.diameterRange}</p>
+                  </div>
+                  <div>
+                    <p className="text-[#64748b]">Panjang Standar</p>
+                    <p className="font-semibold text-[#0f172a]">{selectedSpec.standardLength} meter</p>
+                  </div>
+                  <div>
+                    <p className="text-[#64748b]">Volume/Batang</p>
+                    <p className="font-semibold text-[#166534]">{selectedSpec.volumePerLog.toFixed(3)} m³</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Input Jumlah Batang */}
+            <FormField label="Jumlah Batang" required hint="Masukkan jumlah batang, kubikasi akan dihitung otomatis">
+              <div className="relative">
+                <input 
+                  type="number" 
+                  className="input-field pr-16"
+                  placeholder="0"
+                  min="0"
+                  value={numberOfLogs || ''}
+                  onChange={(e) => setNumberOfLogs(parseInt(e.target.value) || 0)}
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[12px] text-[#64748b] font-medium">batang</span>
+              </div>
+            </FormField>
+
+            {/* Auto Kalkulasi */}
+            {selectedSpec && numberOfLogs > 0 && (
+              <div className="bg-[#f0fdf4] rounded-lg p-4 border border-[#dcfce7] space-y-3">
+                <p className="text-[12px] font-semibold text-[#166534] flex items-center gap-1.5">
+                  <Calculator className="w-3.5 h-3.5" />
+                  Kalkulasi Otomatis
+                </p>
+                
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-white rounded-lg p-3 border border-[#dcfce7]">
+                    <p className="text-[11px] text-[#166534]">Total Kubikasi</p>
+                    <p className="text-[16px] font-bold text-[#166534]">{autoVolume.toFixed(2)} m³</p>
+                    <p className="text-[10px] text-[#16a34a] mt-0.5">
+                      {numberOfLogs} batang × {selectedSpec.volumePerLog.toFixed(3)} m³
+                    </p>
+                  </div>
+                  
+                  {selectedPrice && (
+                    <div className="bg-white rounded-lg p-3 border border-[#dcfce7]">
+                      <p className="text-[11px] text-[#166534]">Harga Jual/Batang</p>
+                      <p className="text-[16px] font-bold text-[#166534]">{formatCurrency(selectedPrice.sellPricePerLog)}</p>
+                      <p className="text-[10px] text-[#16a34a] mt-0.5">
+                        {formatCurrency(selectedPrice.sellPrice)}/m³ × {selectedSpec.volumePerLog.toFixed(3)} m³
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {selectedPrice && (
+                  <div className="pt-3 border-t border-[#dcfce7]">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-[11px] text-[#166534]">Total Nilai Beli (ke Depo)</p>
+                        <p className="text-[14px] font-semibold text-[#334155]">{formatCurrency(autoBuyValue)}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[11px] text-[#166534]">Total Nilai Jual (ke Perusahaan)</p>
+                        <p className="text-[18px] font-bold text-[#166534]">{formatCurrency(autoSellValue)}</p>
+                      </div>
+                    </div>
+                    <div className="mt-2 text-[11px] text-[#16a34a] text-center">
+                      Estimasi Profit: <strong>{formatCurrency(autoSellValue - autoBuyValue)}</strong>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <button 
+              onClick={handleReset}
+              className="text-[12px] text-[#64748b] font-medium hover:text-[#166534] hover:underline"
+            >
+              + Tambah Item Lain
+            </button>
+          </div>
+        </div>
+
+        <div className="bg-[#fefce8] border border-[#fef08a] rounded-lg p-3 flex items-start gap-2">
+          <AlertTriangle className="w-4 h-4 text-[#a16207] mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="text-[12px] font-medium text-[#713f12]">Perhatian Credit Limit</p>
+            <p className="text-[11px] text-[#854d0e] mt-0.5">Pastikan total piutang + nilai pesanan tidak melebihi credit limit perusahaan.</p>
+          </div>
+        </div>
+
+        <FormField label="Catatan">
+          <textarea className="input-field min-h-[60px] resize-none" placeholder="Catatan tambahan..." />
+        </FormField>
+      </div>
+    </Modal>
   );
 }

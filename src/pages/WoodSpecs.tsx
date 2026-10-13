@@ -76,8 +76,23 @@ export default function WoodSpecs() {
                   </div>
                 )}
 
+                {/* Info Volume per Batang */}
+                <div className="bg-[#f8fafc] rounded-lg p-3 mb-3 border border-[#f1f5f9]">
+                  <div className="grid grid-cols-2 gap-2 text-[11px]">
+                    <div>
+                      <p className="text-[#64748b]">Panjang Standar</p>
+                      <p className="font-semibold text-[#0f172a]">{spec.standardLength} meter</p>
+                    </div>
+                    <div>
+                      <p className="text-[#64748b]">Volume/Batang</p>
+                      <p className="font-semibold text-[#166534]">{spec.volumePerLog.toFixed(3)} m³</p>
+                    </div>
+                  </div>
+                </div>
+
                 {price && (
-                  <div className="pt-4 border-t border-[#f1f5f9] space-y-2">
+                  <div className="pt-3 border-t border-[#f1f5f9] space-y-2">
+                    <p className="text-[11px] font-semibold text-[#334155] mb-2">Harga per m³</p>
                     <div className="flex justify-between text-[12px]">
                       <span className="text-[#64748b]">Harga Beli Depo</span>
                       <span className="font-medium text-[#334155]">{formatCurrency(price.buyPrice)}/m³</span>
@@ -89,6 +104,16 @@ export default function WoodSpecs() {
                     <div className="flex justify-between text-[12px] pt-2 border-t border-dashed border-[#e2e8f0]">
                       <span className="text-[#334155] font-medium">Harga Jual</span>
                       <span className="font-bold text-[#166534] text-[13px]">{formatCurrency(price.sellPrice)}/m³</span>
+                    </div>
+                    
+                    <p className="text-[11px] font-semibold text-[#334155] mt-3 mb-2 pt-2 border-t border-[#f1f5f9]">Harga per Batang</p>
+                    <div className="flex justify-between text-[12px]">
+                      <span className="text-[#64748b]">Harga Beli</span>
+                      <span className="font-medium text-[#334155]">{formatCurrency(price.buyPricePerLog)}/batang</span>
+                    </div>
+                    <div className="flex justify-between text-[12px] pt-2 border-t border-dashed border-[#e2e8f0]">
+                      <span className="text-[#334155] font-medium">Harga Jual</span>
+                      <span className="font-bold text-[#166534] text-[13px]">{formatCurrency(price.sellPricePerLog)}/batang</span>
                     </div>
                   </div>
                 )}

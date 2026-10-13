@@ -28,6 +28,11 @@ export interface WoodSpec {
   id: string;
   woodType: string;
   diameterRange: string;
+  diameterMin: number; // cm
+  diameterMax: number; // cm
+  avgDiameter: number; // cm - diameter rata-rata untuk kalkulasi
+  standardLength: number; // meter - panjang standar batang
+  volumePerLog: number; // m³ per batang (dihitung dari diameter & panjang)
   grade: 'A' | 'B' | 'C';
   unit: string;
   notes: string;
@@ -37,9 +42,11 @@ export interface Price {
   id: string;
   woodSpecId: string;
   woodSpecName: string;
-  buyPrice: number;
-  traderMargin: number;
-  sellPrice: number;
+  buyPrice: number; // harga beli per m³
+  buyPricePerLog: number; // harga beli per batang (otomatis)
+  traderMargin: number; // margin per m³
+  sellPrice: number; // harga jual per m³
+  sellPricePerLog: number; // harga jual per batang (otomatis)
   effectiveDate: string;
   isActive: boolean;
 }
@@ -62,9 +69,16 @@ export interface Order {
 export interface OrderItem {
   id: string;
   woodSpecName: string;
-  volume: number;
-  buyPrice: number;
-  sellPrice: number;
+  woodSpecId: string;
+  numberOfLogs: number; // jumlah batang
+  volumePerLog: number; // m³ per batang
+  volume: number; // total volume = numberOfLogs × volumePerLog
+  buyPricePerLog: number; // harga beli per batang
+  sellPricePerLog: number; // harga jual per batang
+  buyPrice: number; // harga beli per m³ (untuk referensi)
+  sellPrice: number; // harga jual per m³ (untuk referensi)
+  totalBuyValue: number; // numberOfLogs × buyPricePerLog
+  totalSellValue: number; // numberOfLogs × sellPricePerLog
 }
 
 export interface Delivery {
@@ -122,28 +136,250 @@ export const companies: Company[] = [
 ];
 
 export const woodSpecs: WoodSpec[] = [
-  { id: '1', woodType: 'Meranti', diameterRange: '20–30 cm', grade: 'A', unit: 'm³', notes: 'Bebas kulit, kadar air maks 15%' },
-  { id: '2', woodType: 'Meranti', diameterRange: '30–40 cm', grade: 'A', unit: 'm³', notes: 'Kualitas premium, lurus' },
-  { id: '3', woodType: 'Keruing', diameterRange: '20–30 cm', grade: 'B', unit: 'm³', notes: 'Untuk core plywood' },
-  { id: '4', woodType: 'Akasia', diameterRange: '15–25 cm', grade: 'B', unit: 'm³', notes: 'Kadar air maks 20%' },
-  { id: '5', woodType: 'Sengon', diameterRange: '20–30 cm', grade: 'C', unit: 'm³', notes: 'Untuk face & back' },
+  { 
+    id: '1', 
+    woodType: 'Meranti', 
+    diameterRange: '20–30 cm', 
+    diameterMin: 20,
+    diameterMax: 30,
+    avgDiameter: 25,
+    standardLength: 4,
+    volumePerLog: 0.196, // m³ per batang (π/4 × 0.25² × 4)
+    grade: 'A', 
+    unit: 'm³', 
+    notes: 'Bebas kulit, kadar air maks 15%' 
+  },
+  { 
+    id: '2', 
+    woodType: 'Meranti', 
+    diameterRange: '30–40 cm', 
+    diameterMin: 30,
+    diameterMax: 40,
+    avgDiameter: 35,
+    standardLength: 4,
+    volumePerLog: 0.385, // m³ per batang
+    grade: 'A', 
+    unit: 'm³', 
+    notes: 'Kualitas premium, lurus' 
+  },
+  { 
+    id: '3', 
+    woodType: 'Keruing', 
+    diameterRange: '20–30 cm', 
+    diameterMin: 20,
+    diameterMax: 30,
+    avgDiameter: 25,
+    standardLength: 4,
+    volumePerLog: 0.196,
+    grade: 'B', 
+    unit: 'm³', 
+    notes: 'Untuk core plywood' 
+  },
+  { 
+    id: '4', 
+    woodType: 'Akasia', 
+    diameterRange: '15–25 cm', 
+    diameterMin: 15,
+    diameterMax: 25,
+    avgDiameter: 20,
+    standardLength: 4,
+    volumePerLog: 0.126,
+    grade: 'B', 
+    unit: 'm³', 
+    notes: 'Kadar air maks 20%' 
+  },
+  { 
+    id: '5', 
+    woodType: 'Sengon', 
+    diameterRange: '20–30 cm', 
+    diameterMin: 20,
+    diameterMax: 30,
+    avgDiameter: 25,
+    standardLength: 4,
+    volumePerLog: 0.196,
+    grade: 'C', 
+    unit: 'm³', 
+    notes: 'Untuk face & back' 
+  },
 ];
 
 export const prices: Price[] = [
-  { id: '1', woodSpecId: '1', woodSpecName: 'Meranti 20-30cm Grade A', buyPrice: 1200000, traderMargin: 15000, sellPrice: 1215000, effectiveDate: '2025-01-01', isActive: true },
-  { id: '2', woodSpecId: '2', woodSpecName: 'Meranti 30-40cm Grade A', buyPrice: 1400000, traderMargin: 15000, sellPrice: 1415000, effectiveDate: '2025-01-01', isActive: true },
-  { id: '3', woodSpecId: '3', woodSpecName: 'Keruing 20-30cm Grade B', buyPrice: 950000, traderMargin: 15000, sellPrice: 965000, effectiveDate: '2025-01-01', isActive: true },
-  { id: '4', woodSpecId: '4', woodSpecName: 'Akasia 15-25cm Grade B', buyPrice: 800000, traderMargin: 15000, sellPrice: 815000, effectiveDate: '2025-01-01', isActive: true },
-  { id: '5', woodSpecId: '5', woodSpecName: 'Sengon 20-30cm Grade C', buyPrice: 650000, traderMargin: 15000, sellPrice: 665000, effectiveDate: '2025-01-01', isActive: true },
+  { 
+    id: '1', 
+    woodSpecId: '1', 
+    woodSpecName: 'Meranti 20-30cm Grade A', 
+    buyPrice: 1200000,
+    buyPricePerLog: 235200, // 1,200,000 × 0.196 m³
+    traderMargin: 15000, 
+    sellPrice: 1215000,
+    sellPricePerLog: 238140, // 1,215,000 × 0.196 m³
+    effectiveDate: '2025-01-01', 
+    isActive: true 
+  },
+  { 
+    id: '2', 
+    woodSpecId: '2', 
+    woodSpecName: 'Meranti 30-40cm Grade A', 
+    buyPrice: 1400000,
+    buyPricePerLog: 539000, // 1,400,000 × 0.385 m³
+    traderMargin: 15000, 
+    sellPrice: 1415000,
+    sellPricePerLog: 544775, // 1,415,000 × 0.385 m³
+    effectiveDate: '2025-01-01', 
+    isActive: true 
+  },
+  { 
+    id: '3', 
+    woodSpecId: '3', 
+    woodSpecName: 'Keruing 20-30cm Grade B', 
+    buyPrice: 950000,
+    buyPricePerLog: 186200, // 950,000 × 0.196 m³
+    traderMargin: 15000, 
+    sellPrice: 965000,
+    sellPricePerLog: 189140, // 965,000 × 0.196 m³
+    effectiveDate: '2025-01-01', 
+    isActive: true 
+  },
+  { 
+    id: '4', 
+    woodSpecId: '4', 
+    woodSpecName: 'Akasia 15-25cm Grade B', 
+    buyPrice: 800000,
+    buyPricePerLog: 100800, // 800,000 × 0.126 m³
+    traderMargin: 15000, 
+    sellPrice: 815000,
+    sellPricePerLog: 102690, // 815,000 × 0.126 m³
+    effectiveDate: '2025-01-01', 
+    isActive: true 
+  },
+  { 
+    id: '5', 
+    woodSpecId: '5', 
+    woodSpecName: 'Sengon 20-30cm Grade C', 
+    buyPrice: 650000,
+    buyPricePerLog: 127400, // 650,000 × 0.196 m³
+    traderMargin: 15000, 
+    sellPrice: 665000,
+    sellPricePerLog: 130340, // 665,000 × 0.196 m³
+    effectiveDate: '2025-01-01', 
+    isActive: true 
+  },
 ];
 
+// Helper function untuk membuat OrderItem
+const createOrderItem = (
+  id: string,
+  woodSpecId: string,
+  woodSpecName: string,
+  numberOfLogs: number,
+  volumePerLog: number,
+  buyPricePerLog: number,
+  sellPricePerLog: number,
+  buyPricePerM3: number,
+  sellPricePerM3: number
+): OrderItem => {
+  const volume = numberOfLogs * volumePerLog;
+  return {
+    id,
+    woodSpecId,
+    woodSpecName,
+    numberOfLogs,
+    volumePerLog,
+    volume,
+    buyPricePerLog,
+    sellPricePerLog,
+    buyPrice: buyPricePerM3,
+    sellPrice: sellPricePerM3,
+    totalBuyValue: numberOfLogs * buyPricePerLog,
+    totalSellValue: numberOfLogs * sellPricePerLog,
+  };
+};
+
 export const orders: Order[] = [
-  { id: '1', orderNumber: 'ORD-202501-0001', orderDate: '2025-01-15', companyId: '1', companyName: 'PT. Plywood Nusantara', supplierId: '1', supplierName: 'Depo Kayu Makmur', status: 'paid', items: [{ id: '1', woodSpecName: 'Meranti 20-30cm Grade A', volume: 50, buyPrice: 1200000, sellPrice: 1215000 }], totalVolume: 50, totalValue: 60750000, notes: 'Pesanan rutin Januari' },
-  { id: '2', orderNumber: 'ORD-202501-0002', orderDate: '2025-01-20', companyId: '2', companyName: 'PT. Kayu Jaya Abadi', supplierId: '2', supplierName: 'Depo Kayu Sejahtera', status: 'invoiced', items: [{ id: '2', woodSpecName: 'Keruing 20-30cm Grade B', volume: 35, buyPrice: 950000, sellPrice: 965000 }], totalVolume: 35, totalValue: 33775000, notes: '' },
-  { id: '3', orderNumber: 'ORD-202502-0001', orderDate: '2025-02-05', companyId: '3', companyName: 'PT. Multi Plywood Indonesia', supplierId: '1', supplierName: 'Depo Kayu Makmur', status: 'in_delivery', items: [{ id: '3', woodSpecName: 'Meranti 30-40cm Grade A', volume: 80, buyPrice: 1400000, sellPrice: 1415000 }], totalVolume: 80, totalValue: 113200000, notes: 'Pesanan besar Q1' },
-  { id: '4', orderNumber: 'ORD-202502-0002', orderDate: '2025-02-10', companyId: '1', companyName: 'PT. Plywood Nusantara', supplierId: '3', supplierName: 'Depo Kayu Lestari', status: 'confirmed', items: [{ id: '4', woodSpecName: 'Akasia 15-25cm Grade B', volume: 40, buyPrice: 800000, sellPrice: 815000 }], totalVolume: 40, totalValue: 32600000, notes: '' },
-  { id: '5', orderNumber: 'ORD-202502-0003', orderDate: '2025-02-15', companyId: '4', companyName: 'PT. Timber Solutions', supplierId: '2', supplierName: 'Depo Kayu Sejahtera', status: 'draft', items: [{ id: '5', woodSpecName: 'Sengon 20-30cm Grade C', volume: 25, buyPrice: 650000, sellPrice: 665000 }], totalVolume: 25, totalValue: 16625000, notes: 'Menunggu approval' },
-  { id: '6', orderNumber: 'ORD-202501-0003', orderDate: '2025-01-25', companyId: '3', companyName: 'PT. Multi Plywood Indonesia', supplierId: '1', supplierName: 'Depo Kayu Makmur', status: 'received', items: [{ id: '6', woodSpecName: 'Meranti 20-30cm Grade A', volume: 60, buyPrice: 1200000, sellPrice: 1215000 }], totalVolume: 60, totalValue: 72900000, notes: '' },
+  { 
+    id: '1', 
+    orderNumber: 'ORD-202501-0001', 
+    orderDate: '2025-01-15', 
+    companyId: '1', 
+    companyName: 'PT. Plywood Nusantara', 
+    supplierId: '1', 
+    supplierName: 'Depo Kayu Makmur', 
+    status: 'paid', 
+    items: [createOrderItem('1', '1', 'Meranti 20-30cm Grade A', 255, 0.196, 235200, 238140, 1200000, 1215000)],
+    totalVolume: 50, 
+    totalValue: 60750000, 
+    notes: 'Pesanan rutin Januari' 
+  },
+  { 
+    id: '2', 
+    orderNumber: 'ORD-202501-0002', 
+    orderDate: '2025-01-20', 
+    companyId: '2', 
+    companyName: 'PT. Kayu Jaya Abadi', 
+    supplierId: '2', 
+    supplierName: 'Depo Kayu Sejahtera', 
+    status: 'invoiced', 
+    items: [createOrderItem('2', '3', 'Keruing 20-30cm Grade B', 179, 0.196, 186200, 189140, 950000, 965000)],
+    totalVolume: 35, 
+    totalValue: 33775000, 
+    notes: '' 
+  },
+  { 
+    id: '3', 
+    orderNumber: 'ORD-202502-0001', 
+    orderDate: '2025-02-05', 
+    companyId: '3', 
+    companyName: 'PT. Multi Plywood Indonesia', 
+    supplierId: '1', 
+    supplierName: 'Depo Kayu Makmur', 
+    status: 'in_delivery', 
+    items: [createOrderItem('3', '2', 'Meranti 30-40cm Grade A', 208, 0.385, 539000, 544775, 1400000, 1415000)],
+    totalVolume: 80, 
+    totalValue: 113200000, 
+    notes: 'Pesanan besar Q1' 
+  },
+  { 
+    id: '4', 
+    orderNumber: 'ORD-202502-0002', 
+    orderDate: '2025-02-10', 
+    companyId: '1', 
+    companyName: 'PT. Plywood Nusantara', 
+    supplierId: '3', 
+    supplierName: 'Depo Kayu Lestari', 
+    status: 'confirmed', 
+    items: [createOrderItem('4', '4', 'Akasia 15-25cm Grade B', 317, 0.126, 100800, 102690, 800000, 815000)],
+    totalVolume: 40, 
+    totalValue: 32600000, 
+    notes: '' 
+  },
+  { 
+    id: '5', 
+    orderNumber: 'ORD-202502-0003', 
+    orderDate: '2025-02-15', 
+    companyId: '4', 
+    companyName: 'PT. Timber Solutions', 
+    supplierId: '2', 
+    supplierName: 'Depo Kayu Sejahtera', 
+    status: 'draft', 
+    items: [createOrderItem('5', '5', 'Sengon 20-30cm Grade C', 128, 0.196, 127400, 130340, 650000, 665000)],
+    totalVolume: 25, 
+    totalValue: 16625000, 
+    notes: 'Menunggu approval' 
+  },
+  { 
+    id: '6', 
+    orderNumber: 'ORD-202501-0003', 
+    orderDate: '2025-01-25', 
+    companyId: '3', 
+    companyName: 'PT. Multi Plywood Indonesia', 
+    supplierId: '1', 
+    supplierName: 'Depo Kayu Makmur', 
+    status: 'received', 
+    items: [createOrderItem('6', '1', 'Meranti 20-30cm Grade A', 306, 0.196, 235200, 238140, 1200000, 1215000)],
+    totalVolume: 60, 
+    totalValue: 72900000, 
+    notes: '' 
+  },
 ];
 
 export const deliveries: Delivery[] = [

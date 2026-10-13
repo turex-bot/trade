@@ -22,15 +22,6 @@ interface NavItem {
 const navItems: NavItem[] = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/' },
   {
-    label: 'Master Data', icon: Package,
-    children: [
-      { label: 'Depo / Supplier', path: '/master/suppliers', icon: Building2 },
-      { label: 'Perusahaan Plywood', path: '/master/companies', icon: Building2 },
-      { label: 'Spesifikasi Kayu', path: '/master/wood-specs', icon: TreePine },
-      { label: 'Daftar Harga', path: '/master/prices', icon: Receipt },
-    ]
-  },
-  {
     label: 'Transaksi', icon: ClipboardList,
     children: [
       { label: 'Pesanan', path: '/transactions/orders', icon: ClipboardList },
@@ -46,12 +37,21 @@ const navItems: NavItem[] = [
   },
   { label: 'Laporan', icon: BarChart3, path: '/reports' },
   { label: 'Audit Log', icon: FileText, path: '/audit-log' },
+  {
+    label: 'Master Data', icon: Package,
+    children: [
+      { label: 'Depo / Supplier', path: '/master/suppliers', icon: Building2 },
+      { label: 'Perusahaan Plywood', path: '/master/companies', icon: Building2 },
+      { label: 'Spesifikasi Kayu', path: '/master/wood-specs', icon: TreePine },
+      { label: 'Daftar Harga', path: '/master/prices', icon: Receipt },
+    ]
+  },
 ];
 
 export default function Layout({ children }: LayoutProps) {
   const location = useLocation();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [expandedGroups, setExpandedGroups] = useState<string[]>(['Master Data', 'Transaksi', 'Keuangan']);
+  const [expandedGroups, setExpandedGroups] = useState<string[]>(['Transaksi', 'Keuangan', 'Master Data']);
 
   const toggleGroup = (label: string) => {
     setExpandedGroups(prev =>
