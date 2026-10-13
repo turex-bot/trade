@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { AlertTriangle, Clock, TrendingUp, Calendar, Search, Eye } from 'lucide-react';
+import { AlertTriangle, Clock, TrendingUp, Calendar, Search, Eye, Package, CheckCircle2 } from 'lucide-react';
 import { PageHeader, Badge, Modal, FormField } from '../components/ui';
 import { useData } from '../context/DataContext';
 import { useToast } from '../components/Toast';
@@ -33,14 +33,28 @@ export default function Receivables() {
     return <Badge variant={variant} dot>{label}</Badge>;
   };
 
-  // Hitung total piutang
+  // Konstanta margin trader
+  const TRADER_MARGIN_PER_M3 = 15000; // Rp15.000 per m³
+
+  // Fungsi hitung total tagihan ke perusahaan
+  const calculateTotalReceivable = (order: any) => {
+    const basePrice = order.totalValue; // Harga beli dasar
+    const margin = order.totalVolume * TRADER_MARGIN_PER_M3; // Margin trader
+    return basePrice + margin; // Harga jual ke perusahaan
+  };
+
+  // Hitung total piutang (harga jual = harga beli + margin)
   const totalReceivable = filteredOrders
     .filter(o => o.status === 'invoiced')
-    .reduce((sum, o) => sum + o.totalValue, 0);
+    .reduce((sum, o) => sum + calculateTotalReceivable(o), 0);
 
   const totalReceived = filteredOrders
     .filter(o => o.status === 'paid')
-    .reduce((sum, o) => sum + o.totalValue, 0);
+    .reduce((sum, o) => sum + calculateTotalReceivable(o), 0);
+
+  // Hitung total margin
+  const totalMargin = filteredOrders
+    .reduce((sum, o) => sum + (o.totalVolume * TRADER_MARGIN_PER_M3), 0);
 
   const handleRecordPayment = (order: any) => {
     setSelectedOrder(order);
@@ -55,15 +69,40 @@ export default function Receivables() {
       />
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
         <div className="stat-card">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-[11px] text-[#64748b]">Total Piutang</p>
               <p className="text-[20px] font-bold text-[#166534] mt-1">{formatCurrency(totalReceivable)}</p>
+              <p className="text-[10px] text-[#94a3b8] mt-0.5">Harga jual ke perusahaan</p>
             </div>
             <div className="w-10 h-10 rounded-xl bg-[#f0fdf4] flex items-center justify-center">
               <TrendingUp className="w-5 h-5 text-[#166534]" />
+            </div>
+          </div>
+        </div>
+        <div className="stat-card">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[11px] text-[#64748b]">Harga Pokok</p>
+              <p className="text-[20px] font-bold text-[#0f172a] mt-1">{formatCurrency(totalReceivable - totalMargin)}</p>
+              <p className="text-[10px] text-[#94a3b8] mt-0.5">Harga beli dari supplier</p>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-[#f1f5f9] flex items-center justify-center">
+              <Package className="w-5 h-5 text-[#64748b]" />
+            </div>
+          </div>
+        </div>
+        <div className="stat-card">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[11px] text-[#64748b]">Margin Trader</p>
+              <p className="text-[20px] font-bold text-[#f59e0b] mt-1">{formatCurrency(totalMargin)}</p>
+              <p className="text-[10px] text-[#94a3b8] mt-0.5">Rp15.000 × total m³</p>
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-[#fef3c7] flex items-center justify-center">
+              <TrendingUp className="w-5 h-5 text-[#f59e0b]" />
             </div>
           </div>
         </div>
@@ -74,18 +113,7 @@ export default function Receivables() {
               <p className="text-[20px] font-bold text-[#166534] mt-1">{formatCurrency(totalReceived)}</p>
             </div>
             <div className="w-10 h-10 rounded-xl bg-[#f0fdf4] flex items-center justify-center">
-              <TrendingUp className="w-5 h-5 text-[#166534]" />
-            </div>
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-[11px] text-[#64748b]">Total Invoice</p>
-              <p className="text-[20px] font-bold text-[#0f172a] mt-1">{filteredOrders.length}</p>
-            </div>
-            <div className="w-10 h-10 rounded-xl bg-[#f1f5f9] flex items-center justify-center">
-              <Calendar className="w-5 h-5 text-[#64748b]" />
+              <CheckCircle2 className="w-5 h-5 text-[#166534]" />
             </div>
           </div>
         </div>
@@ -117,51 +145,56 @@ export default function Receivables() {
                   <th>No. Order</th>
                   <th>Tanggal</th>
                   <th>Perusahaan</th>
-                  <th>Supplier</th>
-                  <th className="text-right">Total Batang</th>
                   <th className="text-right">Volume</th>
-                  <th className="text-right">Harus Ditagih</th>
+                  <th className="text-right">Harga Pokok</th>
+                  <th className="text-right">Margin</th>
+                  <th className="text-right">Total Tagih</th>
                   <th className="text-center">Status</th>
                   <th className="text-center">Aksi</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredOrders.map((order) => (
-                  <tr key={order.id}>
-                    <td>
-                      <span className="font-semibold text-[#166534] text-[12px]">{order.orderNumber}</span>
-                    </td>
-                    <td className="text-[12px] text-[#64748b]">{formatDate(order.orderDate)}</td>
-                    <td className="text-[13px] text-[#0f172a] font-medium">{order.companyName}</td>
-                    <td className="text-[12px] text-[#64748b]">{order.supplierName}</td>
-                    <td className="text-right text-[13px] font-semibold text-[#0f172a]">
-                      {order.items.reduce((sum: number, item: any) => sum + item.numberOfLogs, 0)} batang
-                    </td>
-                    <td className="text-right text-[13px] font-medium text-[#0f172a]">{order.totalVolume.toFixed(2)} m³</td>
-                    <td className="text-right text-[13px] font-bold text-[#166534]">{formatCurrency(order.totalValue)}</td>
-                    <td className="text-center">{getStatusBadge(order.status)}</td>
-                    <td className="text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        <button
-                          onClick={() => setSelectedOrder(order)}
-                          className="p-1.5 rounded-lg hover:bg-[#f1f5f9] text-[#94a3b8] hover:text-[#166534]"
-                          title="Lihat Detail"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
-                        {order.status === 'invoiced' && (
+                {filteredOrders.map((order) => {
+                  const basePrice = order.totalValue;
+                  const margin = order.totalVolume * TRADER_MARGIN_PER_M3;
+                  const totalReceivable = basePrice + margin;
+                  
+                  return (
+                    <tr key={order.id}>
+                      <td>
+                        <span className="font-semibold text-[#166534] text-[12px]">{order.orderNumber}</span>
+                        <p className="text-[10px] text-[#94a3b8]">{order.companyName}</p>
+                      </td>
+                      <td className="text-[12px] text-[#64748b]">{formatDate(order.orderDate)}</td>
+                      <td className="text-[13px] text-[#0f172a] font-medium">{order.companyName}</td>
+                      <td className="text-right text-[13px] font-medium text-[#0f172a]">{order.totalVolume.toFixed(2)} m³</td>
+                      <td className="text-right text-[12px] text-[#64748b]">{formatCurrency(basePrice)}</td>
+                      <td className="text-right text-[12px] text-[#f59e0b] font-medium">{formatCurrency(margin)}</td>
+                      <td className="text-right text-[13px] font-bold text-[#166534]">{formatCurrency(totalReceivable)}</td>
+                      <td className="text-center">{getStatusBadge(order.status)}</td>
+                      <td className="text-center">
+                        <div className="flex items-center justify-center gap-1">
                           <button
-                            onClick={() => handleRecordPayment(order)}
-                            className="p-1.5 rounded-lg hover:bg-[#f0fdf4] text-[#94a3b8] hover:text-[#166534]"
-                            title="Catat Pembayaran"
+                            onClick={() => setSelectedOrder(order)}
+                            className="p-1.5 rounded-lg hover:bg-[#f1f5f9] text-[#94a3b8] hover:text-[#166534]"
+                            title="Lihat Detail"
                           >
-                            <TrendingUp className="w-4 h-4" />
+                            <Eye className="w-4 h-4" />
                           </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                          {order.status === 'invoiced' && (
+                            <button
+                              onClick={() => handleRecordPayment(order)}
+                              className="p-1.5 rounded-lg hover:bg-[#f0fdf4] text-[#94a3b8] hover:text-[#166534]"
+                              title="Catat Pembayaran"
+                            >
+                              <TrendingUp className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -228,14 +261,22 @@ export default function Receivables() {
               </div>
             </div>
 
-            <div className="bg-[#f0fdf4] rounded-lg p-4 flex items-center justify-between border border-[#dcfce7]">
-              <div>
-                <p className="text-[11px] text-[#166534]">Total Harus Ditagih ke Perusahaan</p>
-                <p className="text-[15px] font-bold text-[#166534]">{formatCurrency(selectedOrder.totalValue)}</p>
+            <div className="bg-[#f0fdf4] rounded-lg p-4 border border-[#dcfce7] space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-[11px] text-[#64748b]">Total Volume</p>
+                <p className="text-[13px] font-semibold text-[#0f172a]">{selectedOrder.totalVolume.toFixed(2)} m³</p>
               </div>
-              <div className="text-right">
-                <p className="text-[11px] text-[#166534]">Total Volume</p>
-                <p className="text-[18px] font-bold text-[#166534]">{selectedOrder.totalVolume.toFixed(2)} m³</p>
+              <div className="flex items-center justify-between">
+                <p className="text-[11px] text-[#64748b]">Harga Pokok (dari supplier)</p>
+                <p className="text-[13px] font-medium text-[#0f172a]">{formatCurrency(selectedOrder.totalValue)}</p>
+              </div>
+              <div className="flex items-center justify-between">
+                <p className="text-[11px] text-[#64748b]">Margin Trader ({selectedOrder.totalVolume.toFixed(2)} m³ × Rp15.000)</p>
+                <p className="text-[13px] font-medium text-[#f59e0b]">{formatCurrency(selectedOrder.totalVolume * TRADER_MARGIN_PER_M3)}</p>
+              </div>
+              <div className="pt-3 border-t border-[#dcfce7] flex items-center justify-between">
+                <p className="text-[12px] font-semibold text-[#166534]">Total Tagihan ke Perusahaan</p>
+                <p className="text-[18px] font-bold text-[#166534]">{formatCurrency(calculateTotalReceivable(selectedOrder))}</p>
               </div>
             </div>
 
@@ -264,9 +305,19 @@ export default function Receivables() {
       >
         {selectedOrder && (
           <div className="space-y-4">
-            <div className="bg-[#f0fdf4] rounded-lg p-4 border border-[#dcfce7]">
-              <p className="text-[11px] text-[#166534] mb-1">Total Harus Diterima</p>
-              <p className="text-[20px] font-bold text-[#166534]">{formatCurrency(selectedOrder.totalValue)}</p>
+            <div className="bg-[#f0fdf4] rounded-lg p-4 border border-[#dcfce7] space-y-2">
+              <div className="flex items-center justify-between text-[12px]">
+                <span className="text-[#64748b]">Harga Pokok:</span>
+                <span className="text-[#0f172a]">{formatCurrency(selectedOrder.totalValue)}</span>
+              </div>
+              <div className="flex items-center justify-between text-[12px]">
+                <span className="text-[#64748b]">Margin Trader ({selectedOrder.totalVolume.toFixed(2)} m³ × Rp15.000):</span>
+                <span className="text-[#f59e0b]">{formatCurrency(selectedOrder.totalVolume * TRADER_MARGIN_PER_M3)}</span>
+              </div>
+              <div className="pt-2 border-t border-[#dcfce7] flex items-center justify-between">
+                <span className="text-[13px] font-semibold text-[#166534]">Total Harus Diterima:</span>
+                <span className="text-[20px] font-bold text-[#166534]">{formatCurrency(calculateTotalReceivable(selectedOrder))}</span>
+              </div>
             </div>
 
             <FormField label="Tanggal Pembayaran" required>
@@ -277,8 +328,8 @@ export default function Receivables() {
               <input 
                 type="number" 
                 className="input-field" 
-                defaultValue={selectedOrder.totalValue}
-                max={selectedOrder.totalValue}
+                defaultValue={calculateTotalReceivable(selectedOrder)}
+                max={calculateTotalReceivable(selectedOrder)}
               />
             </FormField>
 
