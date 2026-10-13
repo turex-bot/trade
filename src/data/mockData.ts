@@ -31,7 +31,7 @@ export interface WoodSpec {
   diameterMin: number; // cm
   diameterMax: number; // cm
   avgDiameter: number; // cm - diameter rata-rata untuk kalkulasi
-  standardLength: number; // meter - panjang standar batang
+  standardLength: number; // cm - panjang standar batang (PENTING: dalam cm, bukan meter!)
   volumePerLog: number; // m³ per batang (dihitung dari diameter & panjang)
   grade: 'Reguler' | 'Premium';
   unit: string;

@@ -20,7 +20,7 @@ export default function WoodSpecs() {
     diameterMin: 0,
     diameterMax: 0,
     avgDiameter: 0,
-    standardLength: 4,
+    standardLength: 400, // PENTING: dalam cm (default 4 meter = 400 cm)
     volumePerLog: 0,
     grade: 'Reguler' as 'Reguler' | 'Premium',
     unit: 'm³',
@@ -41,11 +41,14 @@ export default function WoodSpecs() {
   };
 
   // Auto-kalkulasi volume per batang berdasarkan diameter & panjang
-  const calculateVolumePerLog = (avgDiameter: number, length: number) => {
-    // Volume silinder = π/4 × d² × L (dalam m³)
-    // d dalam cm, L dalam meter
-    const radiusM = (avgDiameter / 100) / 2;
-    return Math.PI * radiusM * radiusM * length;
+  // PENTING: Semua input dalam CM, output dalam m³
+  const calculateVolumePerLog = (avgDiameterCm: number, lengthCm: number) => {
+    // Konversi cm ke meter
+    const diameterM = avgDiameterCm / 100;
+    const lengthM = lengthCm / 100;
+    
+    // Rumus: V = (π/4) × d² × t
+    return (Math.PI / 4) * (diameterM * diameterM) * lengthM;
   };
 
   const handleDiameterChange = (min: number, max: number) => {
@@ -61,11 +64,11 @@ export default function WoodSpecs() {
     });
   };
 
-  const handleLengthChange = (length: number) => {
-    const volume = calculateVolumePerLog(formData.avgDiameter, length);
+  const handleLengthChange = (lengthCm: number) => {
+    const volume = calculateVolumePerLog(formData.avgDiameter, lengthCm);
     setFormData({
       ...formData,
-      standardLength: length,
+      standardLength: lengthCm,
       volumePerLog: parseFloat(volume.toFixed(4))
     });
   };
@@ -78,7 +81,7 @@ export default function WoodSpecs() {
       diameterMin: 0,
       diameterMax: 0,
       avgDiameter: 0,
-      standardLength: 4,
+      standardLength: 400, // PENTING: dalam cm
       volumePerLog: 0,
       grade: 'Reguler',
       unit: 'm³',
@@ -179,7 +182,7 @@ export default function WoodSpecs() {
                     <div className="grid grid-cols-2 gap-2 text-[11px]">
                       <div>
                         <p className="text-[#64748b]">Panjang Standar</p>
-                        <p className="font-semibold text-[#0f172a]">{spec.standardLength} meter</p>
+                        <p className="font-semibold text-[#0f172a]">{spec.standardLength} cm</p>
                       </div>
                       <div>
                         <p className="text-[#64748b]">Volume/Batang</p>
@@ -289,14 +292,13 @@ export default function WoodSpecs() {
             </FormField>
           </div>
 
-          <FormField label="Panjang Standar (meter)" required>
+          <FormField label="Panjang Standar (cm)" required hint="Contoh: 130 cm, 400 cm">
             <input 
               type="number" 
-              step="0.1"
               value={formData.standardLength}
-              onChange={(e) => handleLengthChange(parseFloat(e.target.value) || 4)}
+              onChange={(e) => handleLengthChange(parseFloat(e.target.value) || 400)}
               className="input-field" 
-              placeholder="4" 
+              placeholder="130" 
               required
             />
           </FormField>
@@ -316,7 +318,7 @@ export default function WoodSpecs() {
                 </div>
               </div>
               <p className="text-[10px] text-[#16a34a] mt-2">
-                Rumus: π/4 × ({formData.avgDiameter.toFixed(1)}/100)² × {formData.standardLength}m
+                Rumus: (π/4) × ({(formData.avgDiameter / 100).toFixed(3)})² × {(formData.standardLength / 100).toFixed(2)} = {formData.volumePerLog.toFixed(4)} m³
               </p>
             </div>
           )}

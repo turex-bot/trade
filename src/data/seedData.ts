@@ -24,21 +24,22 @@ const createOrderItem = (
   woodSpecId: string,
   woodSpecName: string,
   logDiameters: number[], // diameter aktual per batang dalam cm
-  logLength: number, // panjang batang dalam meter
+  logLengthCm: number, // panjang batang dalam cm (PENTING: dalam cm, bukan meter!)
   buyPricePerLog: number,
   sellPricePerLog: number,
   buyPricePerM3: number,
   sellPricePerM3: number
 ): OrderItem => {
   // Hitung volume per batang berdasarkan diameter aktual
-  const volumeDm3 = logDiameters.reduce((total, diameter) => {
-    const radiusCm = diameter / 2;
-    const lengthCm = logLength * 100;
-    const volumeCm3 = Math.PI * radiusCm * radiusCm * lengthCm;
-    return total + (volumeCm3 / 1000); // konversi ke dm³
+  // PENTING: logLengthCm sudah dalam cm, tidak perlu dikali 100 lagi!
+  const volumeM3 = logDiameters.reduce((total, diameter) => {
+    const diameterM = diameter / 100;
+    const lengthM = logLengthCm / 100;
+    const volumePerLogM3 = (Math.PI / 4) * (diameterM * diameterM) * lengthM;
+    return total + volumePerLogM3;
   }, 0);
   
-  const volumeM3 = volumeDm3 / 1000; // konversi ke m³
+  const volumeDm3 = volumeM3 * 1000; // konversi ke dm³
   
   return {
     id,
@@ -46,7 +47,7 @@ const createOrderItem = (
     woodSpecName,
     numberOfLogs: logDiameters.length,
     logDiameters,
-    logLength,
+    logLength: logLengthCm,
     volumeDm3: Math.round(volumeDm3 * 100) / 100,
     volume: Math.round(volumeM3 * 1000) / 1000,
     buyPricePerLog,
@@ -152,7 +153,7 @@ export function seedWoodSpecs(): WoodSpec[] {
       diameterMin: 20,
       diameterMax: 30,
       avgDiameter: 25,
-      standardLength: 4,
+      standardLength: 400, // PENTING: dalam cm (4 meter = 400 cm)
       volumePerLog: 0.196,
       grade: 'Premium', 
       unit: 'm³', 
@@ -165,7 +166,7 @@ export function seedWoodSpecs(): WoodSpec[] {
       diameterMin: 30,
       diameterMax: 40,
       avgDiameter: 35,
-      standardLength: 4,
+      standardLength: 400, // PENTING: dalam cm
       volumePerLog: 0.385,
       grade: 'Premium', 
       unit: 'm³', 
@@ -178,11 +179,24 @@ export function seedWoodSpecs(): WoodSpec[] {
       diameterMin: 20,
       diameterMax: 30,
       avgDiameter: 25,
-      standardLength: 4,
+      standardLength: 400, // PENTING: dalam cm
       volumePerLog: 0.196,
       grade: 'Reguler', 
       unit: 'm³', 
       notes: 'Untuk core plywood' 
+    },
+    { 
+      id: '4', 
+      woodType: 'Alba', 
+      diameterRange: '19–24 cm', 
+      diameterMin: 19,
+      diameterMax: 24,
+      avgDiameter: 21.5,
+      standardLength: 130, // PENTING: dalam cm (1.3 meter = 130 cm)
+      volumePerLog: 0.047, // (π/4) × 0.215² × 1.3 = 0.04719 m³
+      grade: 'Reguler', 
+      unit: 'm³', 
+      notes: 'Kayu Alba untuk plywood' 
     },
   ];
 }
@@ -250,7 +264,8 @@ export function seedOrders(): Order[] {
       supplierId: '1', 
       supplierName: 'Depo Kayu Makmur', 
       status: 'paid', 
-      items: [createOrderItem('1', '1', 'Meranti 20-30cm Premium', generateDiameters(255, 20, 30), 4, 235200, 238140, 1200000, 1215000)],
+      // PENTING: Panjang 400 cm = 4 meter
+      items: [createOrderItem('1', '1', 'Meranti 20-30cm Premium', generateDiameters(255, 20, 30), 400, 235200, 238140, 1200000, 1215000)],
       totalVolume: 50, 
       totalValue: 60750000, 
       notes: 'Pesanan rutin Januari' 
@@ -264,7 +279,8 @@ export function seedOrders(): Order[] {
       supplierId: '2', 
       supplierName: 'Depo Kayu Sejahtera', 
       status: 'invoiced', 
-      items: [createOrderItem('2', '3', 'Keruing 20-30cm Reguler', generateDiameters(179, 20, 30), 4, 186200, 189140, 950000, 965000)],
+      // PENTING: Panjang 400 cm = 4 meter
+      items: [createOrderItem('2', '3', 'Keruing 20-30cm Reguler', generateDiameters(179, 20, 30), 400, 186200, 189140, 950000, 965000)],
       totalVolume: 35, 
       totalValue: 33775000, 
       notes: '' 

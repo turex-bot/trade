@@ -5,7 +5,7 @@ import { PageHeader, Modal, Badge, FormField, Tabs } from '../components/ui';
 import { useData } from '../context/DataContext';
 import { useToast } from '../components/Toast';
 import { formatCurrency, formatDate } from '../data/mockData';
-import { formatVolumeM3, formatNumberID } from '../utils/logVolumeFormatter';
+import { formatVolumeM3, formatNumberID, calculateLogVolumeM3 } from '../utils/logVolumeFormatter';
 
 export default function Orders() {
   const { orders, companies, suppliers, woodSpecs, prices, addOrder, updateOrder, deleteOrder } = useData();
@@ -330,11 +330,9 @@ function CreateOrderModal({ open, onClose, companies, suppliers, woodSpecs, pric
     if (spec && price && item.numberOfLogs > 0) {
       // Use average diameter for estimation in the form
       const avgDiameter = (spec.diameterMin + spec.diameterMax) / 2;
-      const radiusCm = avgDiameter / 2;
-      const lengthCm = spec.standardLength * 100;
-      const volumePerLogCm3 = Math.PI * radiusCm * radiusCm * lengthCm;
-      const volumePerLogDm3 = volumePerLogCm3 / 1000;
-      const volume = (item.numberOfLogs * volumePerLogDm3) / 1000; // convert to m³
+      // PENTING: standardLength sudah dalam cm, tidak perlu dikali 100 lagi!
+      const volumePerLogM3 = calculateLogVolumeM3(avgDiameter, spec.standardLength);
+      const volume = item.numberOfLogs * volumePerLogM3;
       
       const sellValue = item.numberOfLogs * price.sellPricePerLog;
       const buyValue = item.numberOfLogs * price.buyPricePerLog;
@@ -400,14 +398,12 @@ function CreateOrderModal({ open, onClose, companies, suppliers, woodSpecs, pric
       }
       
       // Calculate volume per log based on actual diameters
-      const volumeDm3 = logDiameters.reduce((total, diameter) => {
-        const radiusCm = diameter / 2;
-        const lengthCm = spec.standardLength * 100;
-        const volumeCm3 = Math.PI * radiusCm * radiusCm * lengthCm;
-        return total + (volumeCm3 / 1000); // convert to dm³
+      // PENTING: standardLength sudah dalam cm, tidak perlu dikali 100 lagi!
+      const volumeM3 = logDiameters.reduce((total, diameter) => {
+        return total + calculateLogVolumeM3(diameter, spec.standardLength);
       }, 0);
       
-      const volumeM3 = volumeDm3 / 1000; // convert to m³
+      const volumeDm3 = volumeM3 * 1000; // convert to dm³
       
       return {
         id: Math.random().toString(36).substr(2, 9),

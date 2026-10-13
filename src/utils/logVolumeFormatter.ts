@@ -1,20 +1,32 @@
 /**
  * Formatter untuk Kubikasi Kayu (Plywood Log Procurement)
  * 
- * Standar Industri Indonesia:
- * - Database menyimpan volume dalam dm³ (desimeter kubik) atau liter
- * - 1 m³ = 1000 dm³
- * - Tampilan user dalam m³ dengan 3 angka desimal
+ * RUMUS YANG BENAR:
+ * V = (π/4) × d² × t
  * 
- * Contoh:
- * - Database: 874 (dm³) → Tampilan: 0.874 m³
- * - Database: 1870 (dm³) → Tampilan: 1.870 m³
+ * Dimana:
+ * - d = diameter dalam METER
+ * - t = panjang dalam METER
+ * - Hasil = volume dalam m³
+ * 
+ * KONVERSI SATUAN:
+ * - 1 m = 100 cm
+ * - 1 m³ = 1,000,000 cm³
+ * - 1 m³ = 1,000 dm³ (liter)
+ * 
+ * CONTOH PERHITUNGAN:
+ * Diameter: 21.5 cm = 0.215 m
+ * Panjang: 130 cm = 1.3 m
+ * 
+ * V = (π/4) × (0.215)² × 1.3
+ * V = 0.7854 × 0.046225 × 1.3
+ * V = 0.04719 m³ ✅
  */
 
 /**
  * Konversi volume dari dm³ ke m³ dengan format 3 desimal
  * @param volumeInDm3 - Volume dalam dm³ (dari database)
- * @returns String format "0.874" atau "1.870"
+ * @returns String format "0.047" atau "1.005"
  */
 export function formatVolumeM3(volumeInDm3: number): string {
   if (volumeInDm3 === 0 || volumeInDm3 === null || volumeInDm3 === undefined) {
@@ -40,27 +52,41 @@ export function formatNumberID(number: number): string {
 
 /**
  * Hitung volume 1 batang kayu berdasarkan diameter aktual
- * Rumus: V = π/4 × d² × L
+ * 
+ * RUMUS: V = (π/4) × d² × t
+ * 
+ * PENTING: Semua input harus dalam CM, output dalam m³
  * 
  * @param diameterCm - Diameter aktual batang dalam cm (misal: 21, 22, 23)
- * @param lengthM - Panjang batang dalam meter (misal: 4)
- * @returns Volume dalam dm³ (desimeter kubik)
+ * @param lengthCm - Panjang batang dalam cm (misal: 130, bukan 1.3!)
+ * @returns Volume dalam m³
  * 
  * Contoh:
- * - Diameter: 21 cm, Panjang: 4 m
- * - V = π/4 × 21² × 40 = 13.854 cm³ = 13.854 dm³
+ * - Diameter: 21.5 cm, Panjang: 130 cm
+ * - d = 21.5 cm = 0.215 m
+ * - t = 130 cm = 1.3 m
+ * - V = (π/4) × (0.215)² × 1.3 = 0.04719 m³ ✅
  */
-export function calculateLogVolumeDm3(diameterCm: number, lengthM: number): number {
-  const radiusCm = diameterCm / 2;
-  const lengthCm = lengthM * 100; // konversi meter ke cm
+export function calculateLogVolumeM3(diameterCm: number, lengthCm: number): number {
+  // Konversi cm ke meter
+  const diameterM = diameterCm / 100;
+  const lengthM = lengthCm / 100;
   
-  // Volume dalam cm³
-  const volumeCm3 = Math.PI * radiusCm * radiusCm * lengthCm;
+  // Rumus: V = (π/4) × d² × t
+  const volumeM3 = (Math.PI / 4) * (diameterM * diameterM) * lengthM;
   
-  // Konversi ke dm³ (1 dm³ = 1000 cm³)
-  const volumeDm3 = volumeCm3 / 1000;
-  
-  return Math.round(volumeDm3 * 100) / 100; // 2 desimal untuk dm³
+  return volumeM3;
+}
+
+/**
+ * Hitung volume 1 batang kayu dalam dm³
+ * @param diameterCm - Diameter dalam cm
+ * @param lengthCm - Panjang dalam cm
+ * @returns Volume dalam dm³
+ */
+export function calculateLogVolumeDm3(diameterCm: number, lengthCm: number): number {
+  const volumeM3 = calculateLogVolumeM3(diameterCm, lengthCm);
+  return volumeM3 * 1000; // 1 m³ = 1000 dm³
 }
 
 /**
@@ -68,19 +94,31 @@ export function calculateLogVolumeDm3(diameterCm: number, lengthM: number): numb
  * Ini adalah logika yang BENAR menurut standar SNI/Perhutani
  * 
  * @param logs - Array diameter aktual per batang dalam cm
- * @param lengthM - Panjang batang dalam meter
- * @returns Total volume dalam dm³
+ * @param lengthCm - Panjang batang dalam cm
+ * @returns Total volume dalam m³
  * 
  * Contoh:
  * - Batang 1: diameter 21 cm
  * - Batang 2: diameter 22 cm
  * - Batang 3: diameter 23 cm
- * - Panjang: 4 m
- * - Total = V(21) + V(22) + V(23)
+ * - Panjang: 130 cm
+ * - Total = V(21) + V(22) + V(23) dalam m³
  */
-export function calculateTotalVolumeDm3(logs: number[], lengthM: number): number {
+export function calculateTotalVolumeM3(logs: number[], lengthCm: number): number {
   return logs.reduce((total, diameter) => {
-    return total + calculateLogVolumeDm3(diameter, lengthM);
+    return total + calculateLogVolumeM3(diameter, lengthCm);
+  }, 0);
+}
+
+/**
+ * Hitung total volume dalam dm³
+ * @param logs - Array diameter dalam cm
+ * @param lengthCm - Panjang dalam cm
+ * @returns Total volume dalam dm³
+ */
+export function calculateTotalVolumeDm3(logs: number[], lengthCm: number): number {
+  return logs.reduce((total, diameter) => {
+    return total + calculateLogVolumeDm3(diameter, lengthCm);
   }, 0);
 }
 
@@ -90,15 +128,15 @@ export function calculateTotalVolumeDm3(logs: number[], lengthM: number): number
  * 
  * @param numberOfLogs - Jumlah batang
  * @param avgDiameterCm - Diameter rata-rata dalam cm
- * @param lengthM - Panjang dalam meter
- * @returns Volume dalam dm³
+ * @param lengthCm - Panjang dalam cm
+ * @returns Volume dalam m³
  */
-export function calculateVolumeByAverageDm3(
+export function calculateVolumeByAverageM3(
   numberOfLogs: number, 
   avgDiameterCm: number, 
-  lengthM: number
+  lengthCm: number
 ): number {
-  const volumePerLog = calculateLogVolumeDm3(avgDiameterCm, lengthM);
+  const volumePerLog = calculateLogVolumeM3(avgDiameterCm, lengthCm);
   return numberOfLogs * volumePerLog;
 }
 
@@ -112,12 +150,12 @@ export function calculateVolumeByAverageDm3(
 export function groupLogsByDiameterClass(
   logs: Array<{ diameter: number; length: number }>,
   diameterClasses: string[]
-): Record<string, { count: number; totalVolumeDm3: number }> {
-  const result: Record<string, { count: number; totalVolumeDm3: number }> = {};
+): Record<string, { count: number; totalVolumeM3: number }> {
+  const result: Record<string, { count: number; totalVolumeM3: number }> = {};
   
   // Initialize semua kelas
   diameterClasses.forEach(cls => {
-    result[cls] = { count: 0, totalVolumeDm3: 0 };
+    result[cls] = { count: 0, totalVolumeM3: 0 };
   });
   
   // Group logs ke kelas yang sesuai
@@ -129,7 +167,7 @@ export function groupLogsByDiameterClass(
     
     if (matchingClass) {
       result[matchingClass].count++;
-      result[matchingClass].totalVolumeDm3 += calculateLogVolumeDm3(log.diameter, log.length);
+      result[matchingClass].totalVolumeM3 += calculateLogVolumeM3(log.diameter, log.length);
     }
   });
   
