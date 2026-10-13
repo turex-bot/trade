@@ -1,14 +1,32 @@
 import { useState } from 'react';
-import { Plus, Search, Edit2, Trash2, MoreVertical, Phone, MapPin, Filter, Download } from 'lucide-react';
-import { suppliers, Supplier } from '../data/mockData';
+import { Plus, Search, Edit2, Trash2, MoreVertical, Phone, MapPin, Download } from 'lucide-react';
+import { Supplier } from '../data/mockData';
 import { PageHeader, Modal, Badge, FormField, EmptyState } from '../components/ui';
+import { useData } from '../context/DataContext';
+import { useToast } from '../components/Toast';
 
 export default function Suppliers() {
+  const { suppliers, addSupplier, updateSupplier } = useData();
+  const toast = useToast();
+  
   const [searchQuery, setSearchQuery] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState('');
+
+  // Form state
+  const [formData, setFormData] = useState({
+    name: '',
+    ownerName: '',
+    phone: '',
+    email: '',
+    address: '',
+    bankAccount: '',
+    bankName: '',
+    npwp: '',
+    status: 'aktif' as 'aktif' | 'nonaktif'
+  });
 
   const filteredSuppliers = suppliers.filter(s => {
     const matchesSearch = s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -19,8 +37,49 @@ export default function Suppliers() {
 
   const handleEdit = (supplier: Supplier) => {
     setEditingSupplier(supplier);
+    setFormData({
+      name: supplier.name,
+      ownerName: supplier.ownerName,
+      phone: supplier.phone,
+      email: supplier.email,
+      address: supplier.address,
+      bankAccount: supplier.bankAccount,
+      bankName: supplier.bankName,
+      npwp: supplier.npwp,
+      status: supplier.status
+    });
     setShowForm(true);
     setActiveMenu(null);
+  };
+
+  const handleOpenAdd = () => {
+    setEditingSupplier(null);
+    setFormData({
+      name: '',
+      ownerName: '',
+      phone: '',
+      email: '',
+      address: '',
+      bankAccount: '',
+      bankName: '',
+      npwp: '',
+      status: 'aktif'
+    });
+    setShowForm(true);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (editingSupplier) {
+      updateSupplier(editingSupplier.id, formData);
+      toast.success('Depo berhasil diupdate', `${formData.name} telah diperbarui`);
+    } else {
+      addSupplier(formData);
+      toast.success('Depo berhasil ditambahkan', `${formData.name} telah ditambahkan ke sistem`);
+    }
+    
+    setShowForm(false);
   };
 
   return (
@@ -34,7 +93,7 @@ export default function Suppliers() {
               <Download className="w-4 h-4" />
               Export
             </button>
-            <button onClick={() => { setEditingSupplier(null); setShowForm(true); }} className="btn btn-primary">
+            <button onClick={handleOpenAdd} className="btn btn-primary">
               <Plus className="w-4 h-4" />
               Tambah Depo
             </button>
@@ -173,8 +232,14 @@ export default function Suppliers() {
         ) : (
           <EmptyState
             icon={<Search className="w-6 h-6" />}
-            title="Tidak ada data ditemukan"
-            description="Coba ubah filter atau kata kunci pencarian Anda"
+            title="Belum ada data depo"
+            description="Mulai dengan menambahkan depo/supplier kayu pertama Anda"
+            action={
+              <button onClick={handleOpenAdd} className="btn btn-primary">
+                <Plus className="w-4 h-4" />
+                Tambah Depo Pertama
+              </button>
+            }
           />
         )}
       </div>
@@ -189,35 +254,73 @@ export default function Suppliers() {
         footer={
           <>
             <button onClick={() => setShowForm(false)} className="btn btn-secondary">Batal</button>
-            <button onClick={() => setShowForm(false)} className="btn btn-primary">
+            <button onClick={handleSubmit} className="btn btn-primary">
               {editingSupplier ? 'Simpan Perubahan' : 'Tambah Depo'}
             </button>
           </>
         }
       >
-        <div className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <FormField label="Nama Depo" required>
-              <input type="text" defaultValue={editingSupplier?.name} className="input-field" placeholder="Masukkan nama depo" />
+              <input 
+                type="text" 
+                value={formData.name}
+                onChange={(e) => setFormData({...formData, name: e.target.value})}
+                className="input-field" 
+                placeholder="Masukkan nama depo" 
+                required
+              />
             </FormField>
             <FormField label="Nama Pemilik" required>
-              <input type="text" defaultValue={editingSupplier?.ownerName} className="input-field" placeholder="Nama pemilik depo" />
+              <input 
+                type="text" 
+                value={formData.ownerName}
+                onChange={(e) => setFormData({...formData, ownerName: e.target.value})}
+                className="input-field" 
+                placeholder="Nama pemilik depo" 
+                required
+              />
             </FormField>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <FormField label="No. HP" required>
-              <input type="text" defaultValue={editingSupplier?.phone} className="input-field" placeholder="08xxxxxxxxxx" />
+              <input 
+                type="text" 
+                value={formData.phone}
+                onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                className="input-field" 
+                placeholder="08xxxxxxxxxx" 
+                required
+              />
             </FormField>
             <FormField label="Email">
-              <input type="email" defaultValue={editingSupplier?.email} className="input-field" placeholder="email@example.com" />
+              <input 
+                type="email" 
+                value={formData.email}
+                onChange={(e) => setFormData({...formData, email: e.target.value})}
+                className="input-field" 
+                placeholder="email@example.com" 
+              />
             </FormField>
           </div>
           <FormField label="Alamat" required>
-            <textarea defaultValue={editingSupplier?.address} className="input-field min-h-[80px] resize-none" placeholder="Alamat lengkap depo" />
+            <textarea 
+              value={formData.address}
+              onChange={(e) => setFormData({...formData, address: e.target.value})}
+              className="input-field min-h-[80px] resize-none" 
+              placeholder="Alamat lengkap depo" 
+              required
+            />
           </FormField>
           <div className="grid grid-cols-2 gap-4">
             <FormField label="Bank" required>
-              <select defaultValue={editingSupplier?.bankName} className="input-field">
+              <select 
+                value={formData.bankName}
+                onChange={(e) => setFormData({...formData, bankName: e.target.value})}
+                className="input-field"
+                required
+              >
                 <option value="">Pilih Bank</option>
                 <option value="BCA">BCA</option>
                 <option value="Mandiri">Mandiri</option>
@@ -226,19 +329,36 @@ export default function Suppliers() {
               </select>
             </FormField>
             <FormField label="No. Rekening" required>
-              <input type="text" defaultValue={editingSupplier?.bankAccount} className="input-field" placeholder="No. rekening" />
+              <input 
+                type="text" 
+                value={formData.bankAccount}
+                onChange={(e) => setFormData({...formData, bankAccount: e.target.value})}
+                className="input-field" 
+                placeholder="No. rekening" 
+                required
+              />
             </FormField>
           </div>
           <FormField label="NPWP" hint="Opsional, untuk keperluan pajak">
-            <input type="text" defaultValue={editingSupplier?.npwp} className="input-field" placeholder="XX.XXX.XXX.X-XXX.XXX" />
+            <input 
+              type="text" 
+              value={formData.npwp}
+              onChange={(e) => setFormData({...formData, npwp: e.target.value})}
+              className="input-field" 
+              placeholder="XX.XXX.XXX.X-XXX.XXX" 
+            />
           </FormField>
           <FormField label="Status">
-            <select defaultValue={editingSupplier?.status || 'aktif'} className="input-field">
+            <select 
+              value={formData.status}
+              onChange={(e) => setFormData({...formData, status: e.target.value as 'aktif' | 'nonaktif'})}
+              className="input-field"
+            >
               <option value="aktif">Aktif</option>
               <option value="nonaktif">Nonaktif</option>
             </select>
           </FormField>
-        </div>
+        </form>
       </Modal>
     </div>
   );

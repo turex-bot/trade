@@ -16,6 +16,7 @@ import SettingsPage from './pages/Settings';
 import AuditLog from './pages/AuditLog';
 import { ToastProvider } from './components/Toast';
 import { CommandPalette } from './components/CommandPalette';
+import { DataProvider } from './context/DataContext';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -43,28 +44,30 @@ function App() {
   }
 
   return (
-    <ToastProvider>
-      <BrowserRouter>
-        <Layout>
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/master/suppliers" element={<Suppliers />} />
-            <Route path="/master/companies" element={<Companies />} />
-            <Route path="/master/wood-specs" element={<WoodSpecs />} />
-            <Route path="/master/prices" element={<Prices />} />
-            <Route path="/transactions/orders" element={<Orders />} />
-            <Route path="/transactions/deliveries" element={<Deliveries />} />
-            <Route path="/finance/invoices" element={<Invoices />} />
-            <Route path="/finance/receivables" element={<Receivables />} />
-            <Route path="/reports" element={<Reports />} />
-            <Route path="/settings" element={<SettingsPage />} />
-            <Route path="/audit-log" element={<AuditLog />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </Layout>
-        <CommandPalette isOpen={showCommandPalette} onClose={() => setShowCommandPalette(false)} />
-      </BrowserRouter>
-    </ToastProvider>
+    <DataProvider>
+      <ToastProvider>
+        <BrowserRouter>
+          <Layout>
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/master/suppliers" element={<Suppliers />} />
+              <Route path="/master/companies" element={<Companies />} />
+              <Route path="/master/wood-specs" element={<WoodSpecs />} />
+              <Route path="/master/prices" element={<Prices />} />
+              <Route path="/transactions/orders" element={<Orders />} />
+              <Route path="/transactions/deliveries" element={<Deliveries />} />
+              <Route path="/finance/invoices" element={<Invoices />} />
+              <Route path="/finance/receivables" element={<Receivables />} />
+              <Route path="/reports" element={<Reports />} />
+              <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/audit-log" element={<AuditLog />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Layout>
+          <CommandPalette isOpen={showCommandPalette} onClose={() => setShowCommandPalette(false)} />
+        </BrowserRouter>
+      </ToastProvider>
+    </DataProvider>
   );
 }
 
