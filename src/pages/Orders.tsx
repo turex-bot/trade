@@ -295,7 +295,7 @@ export default function Orders() {
   );
 }
 
-// Create Order Modal Component - NEW FLOW: Input Diameter → Auto Range → Input Quantity
+// Create Order Modal - NEW: Dropdown jenis kayu, diameter + pcs sejajar, harga otomatis, 1 baris per item
 interface CreateOrderModalProps {
   open: boolean;
   onClose: () => void;
@@ -313,50 +313,47 @@ function CreateOrderModal({ open, onClose, companies, suppliers, woodSpecs, pric
   const [orderDate, setOrderDate] = useState(new Date().toISOString().split('T')[0]);
   const [notes, setNotes] = useState('');
   
-  // Multi-item state - NEW FLOW
+  // Item state - simplified: 1 line per item
   const [orderItems, setOrderItems] = useState<Array<{
-    woodType: string;
-    grade: string;
-    diameters: number[]; // diameter aktual per batang
-    lengthCm: number;
-    priceId: string;
+    woodSpecId: string;
+    diameter: number; // diameter tunggal untuk semua batang di item ini
+    numberOfLogs: number; // jumlah batang (pcs)
+    lengthCm: number; // panjang dalam cm
   }>>([]);
-
-  const [currentDiameter, setCurrentDiameter] = useState<number | ''>('');
 
   const selectedCompany = companies.find(c => c.id === companyId);
   const selectedSupplier = suppliers.find(s => s.id === supplierId);
 
   // Calculate totals
   const totals = orderItems.reduce((acc, item) => {
-    if (item.diameters.length > 0 && item.lengthCm > 0) {
-      // Calculate volume based on actual diameters
-      const volumeM3 = item.diameters.reduce((total, diameter) => {
-        return total + calculateLogVolumeM3(diameter, item.lengthCm);
-      }, 0);
+    if (item.woodSpecId && item.numberOfLogs > 0 && item.lengthCm > 0) {
+      const spec = woodSpecs.find(s => s.id === item.woodSpecId);
+      const price = prices.find(p => p.woodSpecId === item.woodSpecId && p.isActive);
+      
+      if (spec && price) {
+        // Calculate volume based on diameter and length
+        const volumePerLog = calculateLogVolumeM3(item.diameter, item.lengthCm);
+        const totalVolume = volumePerLog * item.numberOfLogs;
+        const sellValue = totalVolume * price.sellPrice;
+        const buyValue = totalVolume * price.buyPrice;
 
-      const price = prices.find(p => p.id === item.priceId && p.isActive);
-      const avgVolumePerLog = volumeM3 / item.diameters.length;
-      const sellValue = price ? item.diameters.length * (price.sellPrice * avgVolumePerLog) : 0;
-      const buyValue = price ? item.diameters.length * (price.buyPrice * avgVolumePerLog) : 0;
-
-      return {
-        totalLogs: acc.totalLogs + item.diameters.length,
-        totalVolume: acc.totalVolume + volumeM3,
-        totalSellValue: acc.totalSellValue + sellValue,
-        totalBuyValue: acc.totalBuyValue + buyValue,
-      };
+        return {
+          totalLogs: acc.totalLogs + item.numberOfLogs,
+          totalVolume: acc.totalVolume + totalVolume,
+          totalSellValue: acc.totalSellValue + sellValue,
+          totalBuyValue: acc.totalBuyValue + buyValue,
+        };
+      }
     }
     return acc;
   }, { totalLogs: 0, totalVolume: 0, totalSellValue: 0, totalBuyValue: 0 });
 
   const handleAddItem = () => {
     setOrderItems([...orderItems, { 
-      woodType: '', 
-      grade: '', 
-      diameters: [], 
-      lengthCm: 400, 
-      priceId: '' 
+      woodSpecId: '', 
+      diameter: 0, 
+      numberOfLogs: 0, 
+      lengthCm: 400 
     }]);
   };
 
@@ -367,30 +364,17 @@ function CreateOrderModal({ open, onClose, companies, suppliers, woodSpecs, pric
   const handleItemChange = (index: number, field: string, value: any) => {
     const newItems = [...orderItems];
     (newItems[index] as any)[field] = value;
-    setOrderItems(newItems);
-  };
-
-  const handleAddDiameter = (itemIndex: number) => {
-    if (currentDiameter && currentDiameter > 0) {
-      const newItems = [...orderItems];
-      newItems[itemIndex].diameters.push(currentDiameter);
-      setOrderItems(newItems);
-      setCurrentDiameter('');
+    
+    // Auto-set length from spec when woodSpecId changes
+    if (field === 'woodSpecId' && value) {
+      const spec = woodSpecs.find(s => s.id === value);
+      if (spec) {
+        newItems[index].lengthCm = spec.standardLength;
+        newItems[index].diameter = spec.avgDiameter;
+      }
     }
-  };
-
-  const handleRemoveDiameter = (itemIndex: number, diameterIndex: number) => {
-    const newItems = [...orderItems];
-    newItems[itemIndex].diameters.splice(diameterIndex, 1);
+    
     setOrderItems(newItems);
-  };
-
-  // Auto-detect range from diameters
-  const getAutoRange = (diameters: number[]): string => {
-    if (diameters.length === 0) return '';
-    const min = Math.min(...diameters);
-    const max = Math.max(...diameters);
-    return `${min}-${max} cm`;
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -408,7 +392,7 @@ function CreateOrderModal({ open, onClose, companies, suppliers, woodSpecs, pric
 
     // Validate all items
     const validItems = orderItems.filter(item => 
-      item.woodType && item.grade && item.diameters.length > 0 && item.lengthCm > 0
+      item.woodSpecId && item.diameter > 0 && item.numberOfLogs > 0 && item.lengthCm > 0
     );
     
     if (validItems.length === 0) {
@@ -417,32 +401,33 @@ function CreateOrderModal({ open, onClose, companies, suppliers, woodSpecs, pric
     }
 
     // Build order items
-    const items: OrderItem[] = validItems.map((item, idx) => {
-      const price = prices.find(p => p.id === item.priceId && p.isActive);
+    const items: OrderItem[] = validItems.map((item) => {
+      const spec = woodSpecs.find(s => s.id === item.woodSpecId)!;
+      const price = prices.find(p => p.woodSpecId === item.woodSpecId && p.isActive)!;
       
-      // Calculate volume per log based on actual diameters
-      const volumeM3 = item.diameters.reduce((total, diameter) => {
-        return total + calculateLogVolumeM3(diameter, item.lengthCm);
-      }, 0);
+      // Generate diameters array (all same diameter for this item)
+      const logDiameters = Array(item.numberOfLogs).fill(item.diameter);
       
-      const volumeDm3 = volumeM3 * 1000; // convert to dm³
-      const avgVolumePerLog = volumeM3 / item.diameters.length;
+      // Calculate volume
+      const volumePerLog = calculateLogVolumeM3(item.diameter, item.lengthCm);
+      const totalVolumeM3 = volumePerLog * item.numberOfLogs;
+      const totalVolumeDm3 = totalVolumeM3 * 1000;
       
       return {
         id: Math.random().toString(36).substr(2, 9),
-        woodSpecId: item.priceId || '',
-        woodSpecName: `${item.woodType} ${getAutoRange(item.diameters)} ${item.grade}`,
-        numberOfLogs: item.diameters.length,
-        logDiameters: item.diameters,
+        woodSpecId: item.woodSpecId,
+        woodSpecName: `${spec.woodType} ${item.diameter}cm ${spec.grade}`,
+        numberOfLogs: item.numberOfLogs,
+        logDiameters: logDiameters,
         logLength: item.lengthCm,
-        volumeDm3: Math.round(volumeDm3 * 100) / 100,
-        volume: Math.round(volumeM3 * 1000) / 1000,
-        buyPricePerLog: price ? price.buyPrice * avgVolumePerLog : 0,
-        sellPricePerLog: price ? price.sellPrice * avgVolumePerLog : 0,
-        buyPrice: price?.buyPrice || 0,
-        sellPrice: price?.sellPrice || 0,
-        totalBuyValue: price ? item.diameters.length * (price.buyPrice * avgVolumePerLog) : 0,
-        totalSellValue: price ? item.diameters.length * (price.sellPrice * avgVolumePerLog) : 0,
+        volumeDm3: Math.round(totalVolumeDm3 * 100) / 100,
+        volume: Math.round(totalVolumeM3 * 1000) / 1000,
+        buyPricePerLog: price.buyPrice * volumePerLog,
+        sellPricePerLog: price.sellPrice * volumePerLog,
+        buyPrice: price.buyPrice,
+        sellPrice: price.sellPrice,
+        totalBuyValue: totalVolumeM3 * price.buyPrice,
+        totalSellValue: totalVolumeM3 * price.sellPrice,
       };
     });
 
@@ -474,7 +459,7 @@ function CreateOrderModal({ open, onClose, companies, suppliers, woodSpecs, pric
       open={open}
       onClose={onClose}
       title="Buat Pesanan Baru"
-      subtitle="Input diameter per batang, range otomatis terdeteksi"
+      subtitle="Pilih jenis kayu, input diameter & jumlah batang"
       size="lg"
       footer={
         <>
@@ -490,7 +475,7 @@ function CreateOrderModal({ open, onClose, companies, suppliers, woodSpecs, pric
       }
     >
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Header Info - Sejajar */}
+        {/* Header Info - 1 baris */}
         <div className="grid grid-cols-3 gap-3">
           <FormField label="Perusahaan" required>
             <select 
@@ -499,7 +484,7 @@ function CreateOrderModal({ open, onClose, companies, suppliers, woodSpecs, pric
               className="input-field"
               required
             >
-              <option value="">Pilih</option>
+              <option value="">Pilih Perusahaan</option>
               {companies.filter(c => c.status === 'aktif').map(c => (
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
@@ -512,7 +497,7 @@ function CreateOrderModal({ open, onClose, companies, suppliers, woodSpecs, pric
               className="input-field"
               required
             >
-              <option value="">Pilih</option>
+              <option value="">Pilih Supplier</option>
               {suppliers.filter(s => s.status === 'aktif').map(s => (
                 <option key={s.id} value={s.id}>{s.name}</option>
               ))}
@@ -546,211 +531,148 @@ function CreateOrderModal({ open, onClose, companies, suppliers, woodSpecs, pric
             </button>
           </div>
           
-          <div className="space-y-3">
-            {orderItems.length === 0 ? (
-              <div className="border-2 border-dashed border-[#e2e8f0] rounded-lg p-6 text-center bg-[#f8fafc]">
-                <p className="text-[13px] text-[#64748b] mb-2">Belum ada item kayu</p>
-                <button
-                  type="button"
-                  onClick={handleAddItem}
-                  className="btn btn-primary text-[12px]"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  Tambah Item Pertama
-                </button>
+          {orderItems.length === 0 ? (
+            <div className="border-2 border-dashed border-[#e2e8f0] rounded-lg p-6 text-center bg-[#f8fafc]">
+              <p className="text-[13px] text-[#64748b] mb-2">Belum ada item kayu</p>
+              <button
+                type="button"
+                onClick={handleAddItem}
+                className="btn btn-primary text-[12px]"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Tambah Item Pertama
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {/* Header Row */}
+              <div className="grid grid-cols-12 gap-2 px-2 py-1.5 bg-[#f8fafc] rounded-lg text-[11px] font-semibold text-[#64748b]">
+                <div className="col-span-3">Jenis Kayu</div>
+                <div className="col-span-2">Diameter (cm)</div>
+                <div className="col-span-2">Jumlah (pcs)</div>
+                <div className="col-span-2">Panjang (cm)</div>
+                <div className="col-span-2 text-right">Kubikasi</div>
+                <div className="col-span-1 text-center">Aksi</div>
               </div>
-            ) : (
-              orderItems.map((item, index) => {
-                const autoRange = getAutoRange(item.diameters);
-                const price = prices.find(p => p.id === item.priceId && p.isActive);
+
+              {/* Item Rows - 1 baris per item */}
+              {orderItems.map((item, index) => {
+                const spec = woodSpecs.find(s => s.id === item.woodSpecId);
+                const price = prices.find(p => p.woodSpecId === item.woodSpecId && p.isActive);
                 
                 // Calculate volume for this item
-                const volumeM3 = item.diameters.reduce((total, diameter) => {
-                  return total + calculateLogVolumeM3(diameter, item.lengthCm);
-                }, 0);
-                
-                const avgVolumePerLog = item.diameters.length > 0 ? volumeM3 / item.diameters.length : 0;
-                const sellValue = price ? item.diameters.length * (price.sellPrice * avgVolumePerLog) : 0;
+                const volumePerLog = item.diameter > 0 && item.lengthCm > 0 
+                  ? calculateLogVolumeM3(item.diameter, item.lengthCm) 
+                  : 0;
+                const totalVolume = volumePerLog * item.numberOfLogs;
+                const totalValue = price ? totalVolume * price.sellPrice : 0;
 
                 return (
-                  <div key={index} className="border border-[#e2e8f0] rounded-lg p-4 bg-[#f8fafc]">
-                    <div className="flex items-start justify-between mb-3">
-                      <p className="text-[12px] font-semibold text-[#0f172a]">Item #{index + 1}</p>
+                  <div key={index} className="grid grid-cols-12 gap-2 items-end py-2 border-b border-[#f1f5f9] last:border-0">
+                    {/* Jenis Kayu - Dropdown */}
+                    <div className="col-span-3">
+                      <select 
+                        className="input-field text-[12px]"
+                        value={item.woodSpecId}
+                        onChange={(e) => handleItemChange(index, 'woodSpecId', e.target.value)}
+                        required
+                      >
+                        <option value="">Pilih Jenis</option>
+                        {woodSpecs.map(spec => (
+                          <option key={spec.id} value={spec.id}>
+                            {spec.woodType} {spec.diameterRange} {spec.grade}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Diameter */}
+                    <div className="col-span-2">
+                      <input 
+                        type="number"
+                        className="input-field text-[12px]"
+                        value={item.diameter || ''}
+                        onChange={(e) => handleItemChange(index, 'diameter', parseFloat(e.target.value) || 0)}
+                        placeholder="21"
+                        step="0.1"
+                        required
+                      />
+                    </div>
+
+                    {/* Jumlah (pcs) */}
+                    <div className="col-span-2">
+                      <input 
+                        type="number"
+                        className="input-field text-[12px]"
+                        value={item.numberOfLogs || ''}
+                        onChange={(e) => handleItemChange(index, 'numberOfLogs', parseInt(e.target.value) || 0)}
+                        placeholder="0"
+                        min="0"
+                        required
+                      />
+                    </div>
+
+                    {/* Panjang */}
+                    <div className="col-span-2">
+                      <input 
+                        type="number"
+                        className="input-field text-[12px]"
+                        value={item.lengthCm}
+                        onChange={(e) => handleItemChange(index, 'lengthCm', parseInt(e.target.value) || 0)}
+                        placeholder="130"
+                        required
+                      />
+                    </div>
+
+                    {/* Kubikasi & Harga */}
+                    <div className="col-span-2 text-right">
+                      {item.numberOfLogs > 0 && item.diameter > 0 && (
+                        <div className="text-[11px]">
+                          <p className="font-bold text-[#166534]">{totalVolume.toFixed(3)} m³</p>
+                          {price && (
+                            <p className="text-[#64748b]">{formatCurrency(totalValue)}</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Delete Button */}
+                    <div className="col-span-1 flex justify-center">
                       <button
                         type="button"
                         onClick={() => handleRemoveItem(index)}
-                        className="p-1 rounded hover:bg-[#fef2f2] text-[#94a3b8] hover:text-[#dc2626]"
+                        className="p-1.5 rounded-lg hover:bg-[#fef2f2] text-[#94a3b8] hover:text-[#dc2626]"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
-
-                    {/* Row 1: Jenis, Grade, Panjang - Sejajar */}
-                    <div className="grid grid-cols-3 gap-3 mb-3">
-                      <FormField label="Jenis Kayu" required>
-                        <input 
-                          type="text"
-                          className="input-field"
-                          value={item.woodType}
-                          onChange={(e) => handleItemChange(index, 'woodType', e.target.value)}
-                          placeholder="Meranti, Alba, dll"
-                          required
-                        />
-                      </FormField>
-                      <FormField label="Grade" required>
-                        <select 
-                          className="input-field"
-                          value={item.grade}
-                          onChange={(e) => handleItemChange(index, 'grade', e.target.value)}
-                          required
-                        >
-                          <option value="">Pilih</option>
-                          <option value="Premium">Premium</option>
-                          <option value="Reguler">Reguler</option>
-                        </select>
-                      </FormField>
-                      <FormField label="Panjang (cm)" required>
-                        <input 
-                          type="number"
-                          className="input-field"
-                          value={item.lengthCm}
-                          onChange={(e) => handleItemChange(index, 'lengthCm', parseInt(e.target.value) || 0)}
-                          placeholder="130"
-                          required
-                        />
-                      </FormField>
-                    </div>
-
-                    {/* Row 2: Input Diameter - Sejajar */}
-                    <div className="mb-3">
-                      <label className="block text-[12px] font-medium text-[#334155] mb-1.5">
-                        Diameter Batang (cm) <span className="text-[#dc2626]">*</span>
-                      </label>
-                      <div className="flex gap-2">
-                        <input 
-                          type="number"
-                          className="input-field flex-1"
-                          value={currentDiameter}
-                          onChange={(e) => setCurrentDiameter(e.target.value === '' ? '' : parseFloat(e.target.value))}
-                          placeholder="Masukkan diameter (misal: 21)"
-                          step="0.1"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => handleAddDiameter(index)}
-                          className="btn btn-primary"
-                          disabled={!currentDiameter || currentDiameter <= 0}
-                        >
-                          <Plus className="w-4 h-4" />
-                          Tambah
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Diameter List */}
-                    {item.diameters.length > 0 && (
-                      <div className="mb-3">
-                        <div className="flex items-center justify-between mb-2">
-                          <p className="text-[11px] text-[#64748b]">
-                            {item.diameters.length} batang diinput
-                          </p>
-                          <p className="text-[11px] font-semibold text-[#166534]">
-                            Range: {autoRange}
-                          </p>
-                        </div>
-                        <div className="flex flex-wrap gap-1.5 max-h-[100px] overflow-y-auto">
-                          {item.diameters.map((diameter, dIdx) => (
-                            <div 
-                              key={dIdx}
-                              className="inline-flex items-center gap-1 px-2 py-1 bg-white border border-[#e2e8f0] rounded text-[11px]"
-                            >
-                              <span className="font-medium text-[#0f172a]">{diameter} cm</span>
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveDiameter(index, dIdx)}
-                                className="text-[#94a3b8] hover:text-[#dc2626]"
-                              >
-                                <X className="w-3 h-3" />
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Row 3: Harga & Kalkulasi - Sejajar */}
-                    <div className="grid grid-cols-2 gap-3 mb-3">
-                      <FormField label="Harga (per m³)" required>
-                        <select 
-                          className="input-field"
-                          value={item.priceId}
-                          onChange={(e) => handleItemChange(index, 'priceId', e.target.value)}
-                          required
-                        >
-                          <option value="">Pilih Harga</option>
-                          {prices.filter(p => p.isActive).map(p => (
-                            <option key={p.id} value={p.id}>
-                              {p.woodSpecName} - Beli: {formatCurrency(p.buyPrice)}, Jual: {formatCurrency(p.sellPrice)}
-                            </option>
-                          ))}
-                        </select>
-                      </FormField>
-                      {item.diameters.length > 0 && price && (
-                        <div>
-                          <label className="block text-[12px] font-medium text-[#334155] mb-1.5">
-                            Kalkulasi Otomatis
-                          </label>
-                          <div className="bg-white rounded-lg p-2 border border-[#e2e8f0] text-[11px]">
-                            <div className="grid grid-cols-2 gap-2">
-                              <div>
-                                <p className="text-[#64748b]">Total Volume</p>
-                                <p className="font-bold text-[#166534]">{volumeM3.toFixed(3)} m³</p>
-                              </div>
-                              <div>
-                                <p className="text-[#64748b]">Total Nilai</p>
-                                <p className="font-bold text-[#166534]">{formatCurrency(sellValue)}</p>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
                   </div>
                 );
-              })
-            )}
-          </div>
+              })}
+            </div>
+          )}
         </div>
 
         {/* Grand Total */}
         {orderItems.length > 0 && totals.totalVolume > 0 && (
           <div className="bg-[#f0fdf4] rounded-lg p-4 border border-[#dcfce7]">
-            <p className="text-[12px] font-semibold text-[#166534] mb-3 flex items-center gap-1.5">
-              <Calculator className="w-3.5 h-3.5" />
-              Total Keseluruhan
-            </p>
             <div className="grid grid-cols-4 gap-3">
               <div className="bg-white rounded-lg p-3 border border-[#dcfce7]">
-                <p className="text-[11px] text-[#166534]">Total Item</p>
-                <p className="text-[16px] font-bold text-[#166534]">{orderItems.filter(i => i.diameters.length > 0).length}</p>
+                <p className="text-[11px] text-[#64748b]">Total Batang</p>
+                <p className="text-[16px] font-bold text-[#166534]">{totals.totalLogs} pcs</p>
               </div>
               <div className="bg-white rounded-lg p-3 border border-[#dcfce7]">
-                <p className="text-[11px] text-[#166534]">Total Batang</p>
-                <p className="text-[16px] font-bold text-[#166534]">{totals.totalLogs} batang</p>
-              </div>
-              <div className="bg-white rounded-lg p-3 border border-[#dcfce7]">
-                <p className="text-[11px] text-[#166534]">Total Kubikasi</p>
+                <p className="text-[11px] text-[#64748b]">Total Kubikasi</p>
                 <p className="text-[16px] font-bold text-[#166534]">{totals.totalVolume.toFixed(3)} m³</p>
               </div>
               <div className="bg-white rounded-lg p-3 border border-[#dcfce7]">
-                <p className="text-[11px] text-[#166534]">Total Nilai</p>
+                <p className="text-[11px] text-[#64748b]">Total Nilai Jual</p>
                 <p className="text-[16px] font-bold text-[#166534]">{formatCurrency(totals.totalSellValue)}</p>
               </div>
-            </div>
-            <div className="mt-3 pt-3 border-t border-[#dcfce7] text-center">
-              <p className="text-[12px] text-[#16a34a]">
-                Estimasi Profit: <strong className="text-[14px]">{formatCurrency(totals.totalSellValue - totals.totalBuyValue)}</strong>
-              </p>
+              <div className="bg-white rounded-lg p-3 border border-[#dcfce7]">
+                <p className="text-[11px] text-[#64748b]">Estimasi Profit</p>
+                <p className="text-[16px] font-bold text-[#166534]">{formatCurrency(totals.totalSellValue - totals.totalBuyValue)}</p>
+              </div>
             </div>
           </div>
         )}
