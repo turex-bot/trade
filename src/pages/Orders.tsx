@@ -403,6 +403,20 @@ function CreateOrderModal({ open, onClose, companies, suppliers, woodSpecs, pric
       return;
     }
 
+    // Validate diameter range
+    for (const item of validItems) {
+      const spec = woodSpecs.find(s => s.id === item.woodSpecId);
+      if (spec) {
+        if (item.diameter < spec.diameterMin || item.diameter > spec.diameterMax) {
+          toast.error(
+            'Diameter tidak valid',
+            `${spec.woodType}: diameter harus antara ${spec.diameterMin}-${spec.diameterMax} cm (input: ${item.diameter} cm)`
+          );
+          return;
+        }
+      }
+    }
+
     // Build order items
     const items: OrderItem[] = validItems.map((item) => {
       const spec = woodSpecs.find(s => s.id === item.woodSpecId)!;
@@ -603,13 +617,32 @@ function CreateOrderModal({ open, onClose, companies, suppliers, woodSpecs, pric
                       )}
                     </div>
 
-                    {/* Diameter - Input dengan Placeholder Range */}
+                    {/* Diameter - Input dengan Validasi Range */}
                     <div className="col-span-2">
                       <input 
                         type="number"
-                        className="input-field text-[12px]"
+                        className={`input-field text-[12px] ${
+                          spec && item.diameter > 0 && (item.diameter < spec.diameterMin || item.diameter > spec.diameterMax)
+                            ? 'border-red-500 bg-red-50'
+                            : ''
+                        }`}
                         value={item.diameter || ''}
-                        onChange={(e) => handleItemChange(index, 'diameter', parseFloat(e.target.value) || 0)}
+                        onChange={(e) => {
+                          const value = parseFloat(e.target.value) || 0;
+                          handleItemChange(index, 'diameter', value);
+                        }}
+                        onBlur={(e) => {
+                          const value = parseFloat(e.target.value) || 0;
+                          if (spec && value > 0) {
+                            if (value < spec.diameterMin) {
+                              toast.error(`Diameter terlalu kecil`, `Minimal ${spec.diameterMin} cm untuk ${spec.woodType}`);
+                              handleItemChange(index, 'diameter', spec.diameterMin);
+                            } else if (value > spec.diameterMax) {
+                              toast.error(`Diameter terlalu besar`, `Maksimal ${spec.diameterMax} cm untuk ${spec.woodType}`);
+                              handleItemChange(index, 'diameter', spec.diameterMax);
+                            }
+                          }
+                        }}
                         placeholder={spec ? `${spec.diameterMin}-${spec.diameterMax}` : 'Pilih jenis'}
                         step="0.1"
                         min={spec?.diameterMin || 0}
@@ -617,6 +650,11 @@ function CreateOrderModal({ open, onClose, companies, suppliers, woodSpecs, pric
                         required
                         disabled={!spec}
                       />
+                      {spec && item.diameter > 0 && (item.diameter < spec.diameterMin || item.diameter > spec.diameterMax) && (
+                        <p className="text-[10px] text-red-600 mt-1">
+                          ⚠️ Harus antara {spec.diameterMin}-{spec.diameterMax} cm
+                        </p>
+                      )}
                     </div>
 
                     {/* Panjang (cm) - Otomatis dari Master Data */}
