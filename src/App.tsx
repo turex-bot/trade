@@ -8,8 +8,7 @@ import Companies from './pages/Companies';
 import WoodSpecs from './pages/WoodSpecs';
 import Prices from './pages/Prices';
 import Orders from './pages/Orders';
-import Deliveries from './pages/Deliveries';
-import Invoices from './pages/Invoices';
+import Payables from './pages/Payables';
 import Receivables from './pages/Receivables';
 import Reports from './pages/Reports';
 import SettingsPage from './pages/Settings';
@@ -54,11 +53,9 @@ function App() {
               <Route path="/master/companies" element={<Companies />} />
               <Route path="/master/wood-specs" element={<WoodSpecs />} />
               <Route path="/master/prices" element={<Prices />} />
-              <Route path="/transactions/orders" element={<Orders />} />
-              <Route path="/transactions/deliveries" element={<Deliveries />} />
-              <Route path="/finance/invoices" element={<Invoices />} />
-              <Route path="/finance/receivables" element={<Receivables />} />
-              <Route path="/reports" element={<Reports />} />
+            <Route path="/transactions/orders" element={<Orders />} />
+            <Route path="/finance/payables" element={<Payables />} />
+            <Route path="/finance/receivables" element={<Receivables />} />              <Route path="/reports" element={<Reports />} />
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/audit-log" element={<AuditLog />} />
               <Route path="*" element={<Navigate to="/" replace />} />

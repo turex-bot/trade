@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Building2, TreePine, ClipboardList,
   FileText, CreditCard, BarChart3, Menu, X, LogOut,
   ChevronRight, Bell, Search, User, Settings, Package,
-  Truck, Receipt, AlertCircle
+  Truck, Receipt, AlertCircle, TrendingDown, TrendingUp
 } from 'lucide-react';
 import { NotificationCenter } from './NotificationCenter';
 
@@ -25,14 +25,13 @@ const navItems: NavItem[] = [
     label: 'Transaksi', icon: ClipboardList,
     children: [
       { label: 'Pesanan', path: '/transactions/orders', icon: ClipboardList },
-      { label: 'Surat Jalan', path: '/transactions/deliveries', icon: Truck },
     ]
   },
   {
     label: 'Keuangan', icon: CreditCard,
     children: [
-      { label: 'Invoice', path: '/finance/invoices', icon: FileText },
-      { label: 'Piutang & Aging', path: '/finance/receivables', icon: AlertCircle },
+      { label: 'Uang Keluar (ke Supplier)', path: '/finance/payables', icon: TrendingDown },
+      { label: 'Uang Masuk (dari Perusahaan)', path: '/finance/receivables', icon: TrendingUp },
     ]
   },
   { label: 'Laporan', icon: BarChart3, path: '/reports' },
