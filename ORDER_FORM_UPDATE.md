@@ -25,16 +25,16 @@ Form "Buat Pesanan Baru" telah diperbarui dengan fitur-fitur baru untuk memudahk
 
 ### **Tabel Item Kayu**
 ```
-┌──────────────────┬──────────────┬──────────────┬──────────┬──────────────┬──────┐
-│ Jenis Kayu       │ Range Diam.  │ Diam. Tepat  │ Jumlah   │ Kubikasi     │ Aksi │
-│                  │              │ (cm)         │ (pcs)    │ & Nilai      │      │
-├──────────────────┼──────────────┼──────────────┼──────────┼──────────────┼──────┤
-│ Meranti-Premium  │ 20-30 cm     │ [20-30]      │ [100]    │ 0.472 m³     │ [🗑️]│
-│                  │ Panjang:400cm│              │ pcs      │ Rp573.480    │      │
-├──────────────────┼──────────────┼──────────────┼──────────┼──────────────┼──────┤
-│ Alba-Reguler     │ 19-24 cm     │ [19-24]      │ [21]     │ 0.991 m³     │ [🗑️]│
-│                  │ Panjang:130cm│              │ pcs      │ Rp807.665    │      │
-└──────────────────┴──────────────┴──────────────┴──────────┴──────────────┴──────┘
+┌────────────┬──────────┬──────────┬──────────┬──────┬──────────────┬──────┐
+│ Jenis Kayu │ Range    │ Diameter │ Panjang  │Jumlah│ Kubikasi     │ Aksi │
+│            │ Diameter │ Tepat    │ (cm)     │(pcs) │ & Nilai      │      │
+├────────────┼──────────┼──────────┼──────────┼──────┼──────────────┼──────┤
+│ Meranti-   │ 20-30 cm │ [20-30]  │ 400 cm   │[100] │ 13.854 m³    │ [🗑️]│
+│ Premium    │          │          │          │      │ Rp16.832.610 │      │
+├────────────┼──────────┼──────────┼──────────┼──────┼──────────────┼──────┤
+│ Alba-      │ 19-24 cm │ [19-24]  │ 130 cm   │ [21] │ 0.991 m³     │ [🗑️]│
+│ Reguler    │          │          │          │      │ Rp807.665    │      │
+└────────────┴──────────┴──────────┴──────────┴──────┴──────────────┴──────┘
 ```
 
 ### **Upload Hasil Tally**
@@ -67,9 +67,9 @@ Form "Buat Pesanan Baru" telah diperbarui dengan fitur-fitur baru untuk memudahk
 ```
 
 **Setelah pilih:**
-- ✅ Range diameter otomatis muncul (contoh: "20-30 cm")
-- ✅ Panjang otomatis terisi (contoh: "400 cm")
-- ✅ Diameter rata-rata otomatis terisi (contoh: "25")
+- ✅ Range diameter otomatis muncul di kolom "Range Diameter" (contoh: "20-30 cm")
+- ✅ Panjang otomatis muncul di kolom "Panjang" (contoh: "400 cm")
+- ✅ Diameter rata-rata otomatis terisi sebagai placeholder di kolom "Diameter Tepat" (contoh: "25")
 
 ### **Step 2: Lihat Range Diameter**
 ```
@@ -102,14 +102,27 @@ User input: 21 cm ✅ (valid)
 User input: 35 cm ❌ (ditolak, melebihi range)
 ```
 
-### **Step 4: Input Jumlah (pcs)**
+### **Step 4: Lihat Panjang (Otomatis)**
+```
+┌──────────────┐
+│ 400 cm       │  ← Ditampilkan otomatis dari master data
+└──────────────┘
+```
+
+**Fungsi:**
+- Menampilkan panjang kayu dalam cm
+- Otomatis dari master data
+- Tidak bisa diedit (display only)
+- Terletak di antara kolom "Diameter Tepat" dan "Jumlah"
+
+### **Step 5: Input Jumlah (pcs)**
 ```
 ┌──────────────┐
 │ [100]        │  ← Input jumlah batang
 └──────────────┘
 ```
 
-### **Step 5: Lihat Kubikasi & Nilai Otomatis**
+### **Step 6: Lihat Kubikasi & Nilai Otomatis**
 ```
 ┌──────────────┐
 │ 0.472 m³     │  ← Kubikasi otomatis
@@ -124,7 +137,7 @@ Total volume = 0.00472 × 100 = 0.472 m³
 Total nilai = 0.472 × Rp1.215.000 = Rp573.480
 ```
 
-### **Step 6: Upload Hasil Tally (Opsional)**
+### **Step 7: Upload Hasil Tally (Opsional)**
 ```
 ┌─────────────────────────────────────────┐
 │ 📁 tally_januari_2025.xlsx              │
@@ -148,8 +161,8 @@ Total nilai = 0.472 × Rp1.215.000 = Rp573.480
 **Input:**
 ```
 1. Pilih: Meranti - Premium
-   → Range: 20-30 cm
-   → Panjang: 400 cm (otomatis)
+   → Range: 20-30 cm (kolom terpisah)
+   → Panjang: 400 cm (kolom terpisah, otomatis)
 
 2. Diameter Tepat: 21 cm
    → Placeholder: "20-30"
@@ -168,8 +181,8 @@ Total nilai = 0.472 × Rp1.215.000 = Rp573.480
 **Input:**
 ```
 1. Pilih: Alba - Reguler
-   → Range: 19-24 cm
-   → Panjang: 130 cm (otomatis)
+   → Range: 19-24 cm (kolom terpisah)
+   → Panjang: 130 cm (kolom terpisah, otomatis)
 
 2. Diameter Tepat: 21.5 cm
    → Placeholder: "19-24"
@@ -215,11 +228,13 @@ Total nilai = 0.472 × Rp1.215.000 = Rp573.480
 - ✅ Mencegah input tidak sesuai
 - ✅ UX yang lebih baik
 
-### **4. Panjang Otomatis**
+### **4. Panjang Otomatis (Kolom Terpisah)**
+- ✅ Ditampilkan sebagai kolom terpisah (di antara Diameter Tepat dan Jumlah)
 - ✅ Tidak perlu input manual
 - ✅ Konsisten dengan master data
 - ✅ Mengurangi kesalahan
 - ✅ Lebih cepat
+- ✅ User bisa melihat panjang dengan jelas tanpa harus cek di bawah jenis kayu
 
 ### **5. Grade Jelas**
 - ✅ Ditampilkan dalam dropdown
@@ -272,12 +287,13 @@ Input: 100 ✅ (diterima)
 
 ### **Input Cepat:**
 1. Pilih jenis kayu dari dropdown
-2. Lihat range diameter yang muncul
+2. Lihat range diameter yang muncul (kolom terpisah)
 3. Input diameter tepat (dalam range)
-4. Input jumlah (pcs)
-5. Kubikasi & nilai otomatis muncul
-6. Upload tally jika perlu
-7. Klik "Buat Pesanan"
+4. Lihat panjang yang muncul (kolom terpisah, otomatis)
+5. Input jumlah (pcs)
+6. Kubikasi & nilai otomatis muncul
+7. Upload tally jika perlu
+8. Klik "Buat Pesanan"
 
 ### **Validasi Manual:**
 - ✅ Cek range diameter sesuai
@@ -313,11 +329,12 @@ Input: 100 ✅ (diterima)
 - Cek ukuran file (< 5MB)
 - Coba format lain
 
-### **Problem: Panjang tidak otomatis**
+### **Problem: Panjang tidak muncul di kolom**
 **Solusi:**
-- Pilih jenis kayu dari dropdown
-- Panjang akan auto-fill dari master data
-- Cek master data sudah lengkap
+- Pilih jenis kayu dari dropdown terlebih dahulu
+- Panjang akan otomatis muncul di kolom "Panjang (cm)"
+- Jika masih tidak muncul, cek master data sudah lengkap
+- Refresh halaman jika perlu
 
 ---
 
@@ -359,7 +376,8 @@ Total nilai = 13.854 × 1.215.000 = Rp16.832.610
 ### **1. Pilih Jenis Kayu yang Tepat**
 - ✅ Sesuaikan dengan kebutuhan
 - ✅ Cek grade (Premium/Reguler)
-- ✅ Cek range diameter
+- ✅ Cek range diameter (muncul di kolom terpisah)
+- ✅ Cek panjang (muncul di kolom terpisah, otomatis)
 
 ### **2. Input Diameter yang Valid**
 - ✅ Dalam range yang ditentukan
@@ -376,6 +394,7 @@ Total nilai = 13.854 × 1.215.000 = Rp16.832.610
 - ✅ Cek total kubikasi
 - ✅ Cek total nilai
 - ✅ Cek estimasi profit
+- ✅ Cek panjang sudah sesuai (kolom terpisah)
 
 ---
 
@@ -386,6 +405,7 @@ Total nilai = 13.854 × 1.215.000 = Rp16.832.610
 | **Jenis Kayu** | Dropdown | Pilih dari master data (dengan grade) |
 | **Range Diameter** | Display | Otomatis dari master data (tidak bisa diedit) |
 | **Diameter Tepat** | Input | User input, dengan placeholder range |
+| **Panjang (cm)** | Display | Otomatis dari master data (tidak bisa diedit) |
 | **Jumlah (pcs)** | Input | User input jumlah batang |
 | **Kubikasi & Nilai** | Display | Otomatis terhitung |
 | **Aksi** | Button | Hapus item |
@@ -403,23 +423,45 @@ Total nilai = 13.854 × 1.215.000 = Rp16.832.610
 └──────────────┴──────────┴────────┴─────────┴──────────┴──────┘
 ```
 
-### **Sesudah:**
+### **Sesudah (Update Terbaru):**
 ```
-┌──────────────┬──────────┬──────────┬────────┬──────────┬──────┐
-│ Jenis Kayu   │ Range    │ Diameter │ Jumlah │ Kubikasi │ Aksi │
-│              │ Diameter │ Tepat    │ (pcs)  │ & Nilai  │      │
-├──────────────┼──────────┼──────────┼────────┼──────────┼──────┤
-│ Meranti-     │ 20-30 cm │ [20-30]  │ [100]  │ 13.854   │ [🗑️]│
-│ Premium      │ P:400cm  │          │        │ Rp16.832 │      │
-└──────────────┴──────────┴──────────┴────────┴──────────┴──────┘
+┌────────────┬──────────┬──────────┬──────────┬──────┬──────────────┬──────┐
+│ Jenis Kayu │ Range    │ Diameter │ Panjang  │Jumlah│ Kubikasi     │ Aksi │
+│            │ Diameter │ Tepat    │ (cm)     │(pcs) │ & Nilai      │      │
+├────────────┼──────────┼──────────┼──────────┼──────┼──────────────┼──────┤
+│ Meranti-   │ 20-30 cm │ [20-30]  │ 400 cm   │[100] │ 13.854 m³    │ [🗑️]│
+│ Premium    │          │          │          │      │ Rp16.832.610 │      │
+└────────────┴──────────┴──────────┴──────────┴──────┴──────────────┴──────┘
 ```
 
 **Perubahan:**
 - ✅ Tambah kolom "Range Diameter" (display only)
 - ✅ Ubah kolom "Diameter" menjadi "Diameter Tepat" dengan placeholder
-- ✅ Hapus kolom "Panjang" (otomatis)
-- ✅ Tambah info "Panjang" di bawah jenis kayu
+- ✅ **Tambah kolom "Panjang" sebagai display** (otomatis dari master data, ditampilkan di antara Diameter Tepat dan Jumlah)
 - ✅ Tambah section "Upload Hasil Tally"
+- ✅ Grade jelas dalam dropdown (Meranti - Premium)
+
+---
+
+## 🎯 **Kesimpulan**
+
+Form "Buat Pesanan Baru" sekarang memiliki layout yang lebih jelas dan terstruktur:
+
+**Layout kolom sekarang:**
+```
+Jenis Kayu → Range Diameter → Diameter Tepat → Panjang → Jumlah → Kubikasi & Nilai → Aksi
+```
+
+**Keuntungan:**
+- ✅ **Upload tally** untuk dokumentasi
+- ✅ **Range diameter** sebagai kolom terpisah
+- ✅ **Diameter tepat** dengan placeholder range
+- ✅ **Panjang otomatis** sebagai kolom terpisah (di antara Diameter Tepat dan Jumlah)
+- ✅ **Grade jelas** dalam dropdown
+- ✅ **Validasi otomatis** untuk diameter
+- ✅ **UX lebih baik** dan lebih intuitif
+
+**Silakan test dengan pilih jenis kayu dan lihat kolom panjang yang muncul otomatis!** 🚀
 
 ---
 

@@ -550,10 +550,11 @@ function CreateOrderModal({ open, onClose, companies, suppliers, woodSpecs, pric
             <div className="space-y-2">
               {/* Header Row */}
               <div className="grid grid-cols-12 gap-2 px-2 py-1.5 bg-[#f8fafc] rounded-lg text-[11px] font-semibold text-[#64748b]">
-                <div className="col-span-3">Jenis Kayu</div>
+                <div className="col-span-2">Jenis Kayu</div>
                 <div className="col-span-2">Range Diameter</div>
                 <div className="col-span-2">Diameter Tepat (cm)</div>
-                <div className="col-span-2">Jumlah (pcs)</div>
+                <div className="col-span-2">Panjang (cm)</div>
+                <div className="col-span-1">Jumlah (pcs)</div>
                 <div className="col-span-2 text-right">Kubikasi & Nilai</div>
                 <div className="col-span-1 text-center">Aksi</div>
               </div>
@@ -573,25 +574,20 @@ function CreateOrderModal({ open, onClose, companies, suppliers, woodSpecs, pric
                 return (
                   <div key={index} className="grid grid-cols-12 gap-2 items-end py-2 border-b border-[#f1f5f9] last:border-0">
                     {/* Jenis Kayu - Dropdown dengan Grade */}
-                    <div className="col-span-3">
+                    <div className="col-span-2">
                       <select 
                         className="input-field text-[12px]"
                         value={item.woodSpecId}
                         onChange={(e) => handleItemChange(index, 'woodSpecId', e.target.value)}
                         required
                       >
-                        <option value="">Pilih Jenis Kayu</option>
+                        <option value="">Pilih Jenis</option>
                         {woodSpecs.map(spec => (
                           <option key={spec.id} value={spec.id}>
                             {spec.woodType} - {spec.grade}
                           </option>
                         ))}
                       </select>
-                      {spec && (
-                        <p className="text-[10px] text-[#64748b] mt-0.5">
-                          Panjang: {spec.standardLength} cm
-                        </p>
-                      )}
                     </div>
 
                     {/* Range Diameter - Display Only */}
@@ -623,8 +619,21 @@ function CreateOrderModal({ open, onClose, companies, suppliers, woodSpecs, pric
                       />
                     </div>
 
-                    {/* Jumlah (pcs) */}
+                    {/* Panjang (cm) - Otomatis dari Master Data */}
                     <div className="col-span-2">
+                      {spec ? (
+                        <div className="input-field text-[12px] bg-[#f8fafc] text-[#64748b] flex items-center">
+                          {spec.standardLength} cm
+                        </div>
+                      ) : (
+                        <div className="input-field text-[12px] bg-[#f8fafc] text-[#94a3b8] flex items-center">
+                          -
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Jumlah (pcs) */}
+                    <div className="col-span-1">
                       <input 
                         type="number"
                         className="input-field text-[12px]"
