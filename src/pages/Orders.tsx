@@ -552,10 +552,10 @@ function CreateOrderModal({ open, onClose, companies, suppliers, woodSpecs, pric
               <div className="grid grid-cols-12 gap-2 px-2 py-1.5 bg-[#f8fafc] rounded-lg text-[11px] font-semibold text-[#64748b]">
                 <div className="col-span-2">Jenis Kayu</div>
                 <div className="col-span-2">Range Diameter</div>
-                <div className="col-span-2">Diameter Tepat (cm)</div>
+                <div className="col-span-2">Diameter (cm)</div>
                 <div className="col-span-2">Panjang (cm)</div>
-                <div className="col-span-1">Jumlah (pcs)</div>
-                <div className="col-span-2 text-right">Kubikasi & Nilai</div>
+                <div className="col-span-2">Jumlah (pcs)</div>
+                <div className="col-span-1 text-right">Kubikasi & Nilai</div>
                 <div className="col-span-1 text-center">Aksi</div>
               </div>
 
@@ -603,14 +603,14 @@ function CreateOrderModal({ open, onClose, companies, suppliers, woodSpecs, pric
                       )}
                     </div>
 
-                    {/* Diameter Tepat - Input dengan Placeholder Range */}
+                    {/* Diameter - Input dengan Placeholder Range */}
                     <div className="col-span-2">
                       <input 
                         type="number"
                         className="input-field text-[12px]"
                         value={item.diameter || ''}
                         onChange={(e) => handleItemChange(index, 'diameter', parseFloat(e.target.value) || 0)}
-                        placeholder={spec ? `${spec.diameterMin}-${spec.diameterMax}` : 'Pilih jenis dulu'}
+                        placeholder={spec ? `${spec.diameterMin}-${spec.diameterMax}` : 'Pilih jenis'}
                         step="0.1"
                         min={spec?.diameterMin || 0}
                         max={spec?.diameterMax || 999}
@@ -633,7 +633,7 @@ function CreateOrderModal({ open, onClose, companies, suppliers, woodSpecs, pric
                     </div>
 
                     {/* Jumlah (pcs) */}
-                    <div className="col-span-1">
+                    <div className="col-span-2">
                       <input 
                         type="number"
                         className="input-field text-[12px]"
@@ -646,7 +646,7 @@ function CreateOrderModal({ open, onClose, companies, suppliers, woodSpecs, pric
                     </div>
 
                     {/* Kubikasi & Nilai */}
-                    <div className="col-span-2 text-right">
+                    <div className="col-span-1 text-right">
                       {item.numberOfLogs > 0 && item.diameter > 0 && (
                         <div className="text-[11px]">
                           <p className="font-bold text-[#166534]">{totalVolume.toFixed(3)} m³</p>
