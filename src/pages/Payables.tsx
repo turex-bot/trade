@@ -6,13 +6,22 @@ import { useToast } from '../components/Toast';
 import { formatCurrency, formatDate } from '../data/mockData';
 
 export default function Payables() {
-  const { orders, suppliers } = useData();
+  const { orders, suppliers, updateOrder, addPayment } = useData();
   const toast = useToast();
   
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  
+  // Payment form state
+  const [paymentData, setPaymentData] = useState({
+    paymentDate: new Date().toISOString().split('T')[0],
+    amount: 0,
+    method: '',
+    reference: '',
+    notes: ''
+  });
 
   // Filter orders yang sudah dikonfirmasi atau lebih (sudah harus bayar ke supplier)
   const payableOrders = orders.filter(o => 
@@ -76,7 +85,53 @@ export default function Payables() {
 
   const handleRecordPayment = (order: any) => {
     setSelectedOrder(order);
+    // Reset form dengan data default
+    setPaymentData({
+      paymentDate: new Date().toISOString().split('T')[0],
+      amount: calculateTotalPayable(order),
+      method: '',
+      reference: '',
+      notes: ''
+    });
     setShowPaymentModal(true);
+  };
+
+  const handleSavePayment = () => {
+    if (!selectedOrder) return;
+    
+    // Validasi
+    if (!paymentData.method) {
+      toast.error('Lengkapi data pembayaran', 'Pilih metode pembayaran');
+      return;
+    }
+    
+    if (paymentData.amount <= 0) {
+      toast.error('Jumlah tidak valid', 'Masukkan jumlah pembayaran yang benar');
+      return;
+    }
+
+    // 1. Simpan data pembayaran
+    addPayment({
+      invoiceId: selectedOrder.id,
+      invoiceNumber: selectedOrder.orderNumber,
+      paymentDate: paymentData.paymentDate,
+      amount: paymentData.amount,
+      method: paymentData.method,
+      reference: paymentData.reference
+    });
+
+    // 2. Update status order menjadi 'paid'
+    updateOrder(selectedOrder.id, { status: 'paid' });
+
+    // 3. Tampilkan notifikasi sukses
+    toast.success(
+      'Pembayaran berhasil dicatat', 
+      `Pembayaran ke ${selectedOrder.supplierName} sebesar ${formatCurrency(paymentData.amount)} telah tercatat`
+    );
+
+    // 4. Tutup modal dan reset
+    setShowPaymentModal(false);
+    setSelectedOrder(null);
   };
 
   const tabs = [
@@ -374,20 +429,30 @@ export default function Payables() {
             </div>
 
             <FormField label="Tanggal Pembayaran" required>
-              <input type="date" className="input-field" defaultValue={new Date().toISOString().split('T')[0]} />
+              <input 
+                type="date" 
+                className="input-field" 
+                value={paymentData.paymentDate}
+                onChange={(e) => setPaymentData({...paymentData, paymentDate: e.target.value})}
+              />
             </FormField>
 
             <FormField label="Jumlah Pembayaran" required>
               <input 
                 type="number" 
                 className="input-field" 
-                defaultValue={calculateTotalPayable(selectedOrder)}
+                value={paymentData.amount}
+                onChange={(e) => setPaymentData({...paymentData, amount: parseFloat(e.target.value) || 0})}
                 max={calculateTotalPayable(selectedOrder)}
               />
             </FormField>
 
             <FormField label="Metode Pembayaran" required>
-              <select className="input-field">
+              <select 
+                className="input-field"
+                value={paymentData.method}
+                onChange={(e) => setPaymentData({...paymentData, method: e.target.value})}
+              >
                 <option value="">Pilih Metode</option>
                 <option value="transfer">Transfer Bank</option>
                 <option value="cash">Cash / Tunai</option>
@@ -397,11 +462,22 @@ export default function Payables() {
             </FormField>
 
             <FormField label="Nomor Referensi" hint="Nomor transaksi atau bukti transfer">
-              <input type="text" className="input-field" placeholder="TRF-BCA-001234" />
+              <input 
+                type="text" 
+                className="input-field" 
+                placeholder="TRF-BCA-001234"
+                value={paymentData.reference}
+                onChange={(e) => setPaymentData({...paymentData, reference: e.target.value})}
+              />
             </FormField>
 
             <FormField label="Catatan">
-              <textarea className="input-field min-h-[60px] resize-none" placeholder="Catatan tambahan (opsional)" />
+              <textarea 
+                className="input-field min-h-[60px] resize-none" 
+                placeholder="Catatan tambahan (opsional)"
+                value={paymentData.notes}
+                onChange={(e) => setPaymentData({...paymentData, notes: e.target.value})}
+              />
             </FormField>
 
             <div className="flex gap-2 pt-4">
@@ -412,14 +488,10 @@ export default function Payables() {
                 Batal
               </button>
               <button
-                onClick={() => {
-                  toast.success('Pembayaran berhasil dicatat', `Pembayaran ke ${selectedOrder.supplierName} telah tercatat`);
-                  setShowPaymentModal(false);
-                  setSelectedOrder(null);
-                }}
+                onClick={handleSavePayment}
                 className="btn btn-primary flex-1"
               >
-                Simpan Pembayaran
+                💾 Simpan Pembayaran
               </button>
             </div>
           </div>
