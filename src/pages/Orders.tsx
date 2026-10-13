@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Search, Eye, AlertTriangle, Calculator, Trash2, X, Upload } from 'lucide-react';
+import { Plus, Search, Eye, AlertTriangle, Calculator, Trash2, X, Upload, CheckCircle2, FileText } from 'lucide-react';
 import { Order, OrderItem } from '../data/mockData';
 import { PageHeader, Modal, Badge, FormField, Tabs } from '../components/ui';
 import { useData } from '../context/DataContext';
@@ -15,6 +15,8 @@ export default function Orders() {
   const [showForm, setShowForm] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [orderToDelete, setOrderToDelete] = useState<Order | null>(null);
+  const [orderToConfirm, setOrderToConfirm] = useState<Order | null>(null);
+  const [orderToInvoice, setOrderToInvoice] = useState<Order | null>(null);
   const [activeTab, setActiveTab] = useState('all');
 
   const filteredOrders = orders.filter(o => {
@@ -51,6 +53,24 @@ export default function Orders() {
       deleteOrder(orderToDelete.id);
       toast.success('Pesanan berhasil dihapus', `${orderToDelete.orderNumber} telah dihapus`);
       setOrderToDelete(null);
+    }
+  };
+
+  const handleConfirmOrder = () => {
+    if (orderToConfirm) {
+      updateOrder(orderToConfirm.id, { status: 'confirmed' });
+      toast.success('Pesanan berhasil dikonfirmasi', `${orderToConfirm.orderNumber} telah dikonfirmasi dan akan muncul di Uang Keluar`);
+      setOrderToConfirm(null);
+      setSelectedOrder(null);
+    }
+  };
+
+  const handleInvoiceOrder = () => {
+    if (orderToInvoice) {
+      updateOrder(orderToInvoice.id, { status: 'invoiced' });
+      toast.success('Pesanan berhasil di-invoice', `${orderToInvoice.orderNumber} telah di-invoice dan akan muncul di Uang Masuk`);
+      setOrderToInvoice(null);
+      setSelectedOrder(null);
     }
   };
 
@@ -131,6 +151,24 @@ export default function Orders() {
                           >
                             <Eye className="w-4 h-4" />
                           </button>
+                          {order.status === 'draft' && (
+                            <button
+                              onClick={() => setOrderToConfirm(order)}
+                              className="p-1.5 rounded-lg hover:bg-[#eff6ff] text-[#94a3b8] hover:text-[#2563eb]"
+                              title="Konfirmasi Pesanan"
+                            >
+                              <CheckCircle2 className="w-4 h-4" />
+                            </button>
+                          )}
+                          {order.status === 'confirmed' && (
+                            <button
+                              onClick={() => setOrderToInvoice(order)}
+                              className="p-1.5 rounded-lg hover:bg-[#fff7ed] text-[#94a3b8] hover:text-[#ea580c]"
+                              title="Buat Invoice"
+                            >
+                              <FileText className="w-4 h-4" />
+                            </button>
+                          )}
                           <button
                             onClick={() => setOrderToDelete(order)}
                             className="p-1.5 rounded-lg hover:bg-[#fef2f2] text-[#94a3b8] hover:text-[#dc2626]"
@@ -237,6 +275,34 @@ export default function Orders() {
                 <p className="text-[12px] text-[#334155] bg-[#f8fafc] rounded-lg p-3">{selectedOrder.notes}</p>
               </div>
             )}
+
+            {/* Action Buttons */}
+            <div className="flex gap-2 pt-4 border-t border-[#f1f5f9]">
+              {selectedOrder.status === 'draft' && (
+                <button
+                  onClick={() => setOrderToConfirm(selectedOrder)}
+                  className="btn btn-primary flex-1"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  Konfirmasi Pesanan
+                </button>
+              )}
+              {selectedOrder.status === 'confirmed' && (
+                <button
+                  onClick={() => setOrderToInvoice(selectedOrder)}
+                  className="btn btn-primary flex-1"
+                >
+                  <FileText className="w-4 h-4" />
+                  Buat Invoice
+                </button>
+              )}
+              <button
+                onClick={() => setSelectedOrder(null)}
+                className="btn btn-secondary flex-1"
+              >
+                Tutup
+              </button>
+            </div>
           </div>
         )}
       </Modal>
@@ -276,6 +342,88 @@ export default function Orders() {
             <p className="text-[12px] text-[#64748b]">
               Tindakan ini tidak dapat dibatalkan. Semua data terkait pesanan ini akan dihapus permanen.
             </p>
+          </div>
+        )}
+      </Modal>
+
+      {/* Confirm Order Modal */}
+      <Modal
+        open={!!orderToConfirm}
+        onClose={() => setOrderToConfirm(null)}
+        title="Konfirmasi Pesanan"
+        subtitle="Konfirmasi pesanan untuk diproses"
+        footer={
+          <>
+            <button onClick={() => setOrderToConfirm(null)} className="btn btn-secondary">Batal</button>
+            <button onClick={handleConfirmOrder} className="btn btn-primary">
+              <CheckCircle2 className="w-4 h-4" />
+              Konfirmasi
+            </button>
+          </>
+        }
+      >
+        {orderToConfirm && (
+          <div className="space-y-4">
+            <div className="bg-[#eff6ff] border border-[#bfdbfe] rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <CheckCircle2 className="w-5 h-5 text-[#2563eb] mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="text-[13px] font-semibold text-[#1e40af]">Konfirmasi Pesanan</p>
+                  <p className="text-[12px] text-[#1e3a8a] mt-1">
+                    Anda akan mengkonfirmasi pesanan <strong>{orderToConfirm.orderNumber}</strong> dari {orderToConfirm.companyName}.
+                  </p>
+                  <p className="text-[12px] text-[#1e3a8a] mt-2">
+                    Total: {orderToConfirm.items.reduce((sum, item) => sum + item.numberOfLogs, 0)} batang, {formatVolumeM3(orderToConfirm.totalVolume * 1000)} m³, {formatCurrency(orderToConfirm.totalValue)}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-[#f0fdf4] border border-[#dcfce7] rounded-lg p-3">
+              <p className="text-[12px] text-[#166534]">
+                ✅ Setelah dikonfirmasi, pesanan akan muncul di halaman <strong>Keuangan → Uang Keluar (ke Supplier)</strong>
+              </p>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* Invoice Order Modal */}
+      <Modal
+        open={!!orderToInvoice}
+        onClose={() => setOrderToInvoice(null)}
+        title="Buat Invoice"
+        subtitle="Buat invoice untuk penagihan ke perusahaan"
+        footer={
+          <>
+            <button onClick={() => setOrderToInvoice(null)} className="btn btn-secondary">Batal</button>
+            <button onClick={handleInvoiceOrder} className="btn btn-primary">
+              <FileText className="w-4 h-4" />
+              Buat Invoice
+            </button>
+          </>
+        }
+      >
+        {orderToInvoice && (
+          <div className="space-y-4">
+            <div className="bg-[#fff7ed] border border-[#fed7aa] rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <FileText className="w-5 h-5 text-[#ea580c] mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="text-[13px] font-semibold text-[#9a3412]">Buat Invoice</p>
+                  <p className="text-[12px] text-[#7c2d12] mt-1">
+                    Anda akan membuat invoice untuk pesanan <strong>{orderToInvoice.orderNumber}</strong> dari {orderToInvoice.companyName}.
+                  </p>
+                  <p className="text-[12px] text-[#7c2d12] mt-2">
+                    Total: {orderToInvoice.items.reduce((sum, item) => sum + item.numberOfLogs, 0)} batang, {formatVolumeM3(orderToInvoice.totalVolume * 1000)} m³, {formatCurrency(orderToInvoice.totalValue)}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="bg-[#f0fdf4] border border-[#dcfce7] rounded-lg p-3">
+              <p className="text-[12px] text-[#166534]">
+                ✅ Setelah di-invoice, pesanan akan muncul di halaman <strong>Keuangan → Uang Masuk (dari Perusahaan)</strong>
+              </p>
+            </div>
           </div>
         )}
       </Modal>
