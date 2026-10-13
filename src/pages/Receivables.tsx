@@ -13,9 +13,9 @@ export default function Receivables() {
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
 
-  // Filter orders yang sudah invoiced atau paid (sudah harus ditagih ke perusahaan)
+  // Filter orders yang sudah confirmed, invoiced, atau paid (sudah harus ditagih ke perusahaan)
   const receivableOrders = orders.filter(o => 
-    ['invoiced', 'paid'].includes(o.status)
+    ['confirmed', 'invoiced', 'paid'].includes(o.status)
   );
 
   const filteredOrders = receivableOrders.filter(o => {
@@ -26,6 +26,7 @@ export default function Receivables() {
 
   const getStatusBadge = (status: string) => {
     const config: Record<string, { variant: 'green' | 'blue' | 'yellow' | 'orange' | 'red' | 'gray' | 'purple'; label: string }> = {
+      confirmed: { variant: 'blue', label: 'Perlu Invoice' },
       invoiced: { variant: 'orange', label: 'Sudah Ditagih' },
       paid: { variant: 'green', label: 'Sudah Dibayar' },
     };
@@ -73,9 +74,9 @@ export default function Receivables() {
         <div className="stat-card border-l-4 border-l-[#166534]">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[11px] text-[#64748b] font-medium">💰 PIUTANG DARI PERUSAHAAN</p>
+              <p className="text-[11px] text-[#64748b] font-medium">💰 UTANG PERUSAHAAN KE SAYA</p>
               <p className="text-[20px] font-bold text-[#166534] mt-1">{formatCurrency(totalReceivable)}</p>
-              <p className="text-[10px] text-[#94a3b8] mt-0.5">Yang harus diterima dari perusahaan</p>
+              <p className="text-[10px] text-[#94a3b8] mt-0.5">Yang harus dibayar perusahaan ke saya</p>
             </div>
             <div className="w-10 h-10 rounded-xl bg-[#f0fdf4] flex items-center justify-center">
               <TrendingUp className="w-5 h-5 text-[#166534]" />
@@ -85,9 +86,9 @@ export default function Receivables() {
         <div className="stat-card border-l-4 border-l-[#166534]">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[11px] text-[#64748b] font-medium">✅ SUDAH DITERIMA</p>
+              <p className="text-[11px] text-[#64748b] font-medium">✅ SUDAH DIBAYAR PERUSAHAAN</p>
               <p className="text-[20px] font-bold text-[#166534] mt-1">{formatCurrency(totalReceived)}</p>
-              <p className="text-[10px] text-[#94a3b8] mt-0.5">Pembayaran dari perusahaan</p>
+              <p className="text-[10px] text-[#94a3b8] mt-0.5">Perusahaan sudah bayar ke saya</p>
             </div>
             <div className="w-10 h-10 rounded-xl bg-[#f0fdf4] flex items-center justify-center">
               <CheckCircle2 className="w-5 h-5 text-[#166534]" />
@@ -121,14 +122,14 @@ export default function Receivables() {
       </div>
 
       {/* Info Box - Penjelasan Logika */}
-      <div className="bg-[#f0fdf4] border border-[#dcfce7] rounded-lg p-4 mb-4">
+      <div className="bg-[#eff6ff] border border-[#bfdbfe] rounded-lg p-4 mb-4">
         <div className="flex items-start gap-3">
-          <div className="w-8 h-8 rounded-lg bg-[#166534] flex items-center justify-center flex-shrink-0">
+          <div className="w-8 h-8 rounded-lg bg-[#2563eb] flex items-center justify-center flex-shrink-0">
             <span className="text-white text-sm">💡</span>
           </div>
           <div className="flex-1">
-            <p className="text-[13px] font-semibold text-[#14532d] mb-1">Logika Pembayaran dari Perusahaan</p>
-            <p className="text-[12px] text-[#166534]">
+            <p className="text-[13px] font-semibold text-[#1e40af] mb-1">Logika Pembayaran dari Perusahaan</p>
+            <p className="text-[12px] text-[#1e3a8a]">
               Perusahaan membayar <strong>TOTAL HARGA PESANAN</strong> (harga pokok + margin sudah termasuk)
               <br />
               <span className="text-[11px]">Contoh: Total Rp60.000.000 (sudah termasuk margin Rp750.000)</span>
@@ -196,11 +197,11 @@ export default function Receivables() {
                           >
                             <Eye className="w-4 h-4" />
                           </button>
-                          {order.status === 'invoiced' && (
+                          {order.status !== 'paid' && (
                             <button
                               onClick={() => handleRecordPayment(order)}
                               className="p-1.5 rounded-lg hover:bg-[#f0fdf4] text-[#94a3b8] hover:text-[#166534]"
-                              title="Catat Pembayaran"
+                              title="Input Pembayaran dari Perusahaan"
                             >
                               <TrendingUp className="w-4 h-4" />
                             </button>
@@ -216,8 +217,8 @@ export default function Receivables() {
         ) : (
           <div className="empty-state">
             <TrendingUp className="w-12 h-12 text-[#94a3b8] mb-3" />
-            <h3 className="text-[14px] font-semibold text-[#0f172a]">Tidak ada piutang dari perusahaan</h3>
-            <p className="text-[13px] text-[#64748b] mt-1">Semua pesanan sudah dibayar atau belum ada invoice</p>
+            <h3 className="text-[14px] font-semibold text-[#0f172a]">Belum ada utang perusahaan</h3>
+            <p className="text-[13px] text-[#64748b] mt-1">Konfirmasi pesanan di halaman Transaksi → Pesanan untuk memulai</p>
           </div>
         )}
       </div>
@@ -300,12 +301,12 @@ export default function Receivables() {
               </div>
             </div>
 
-            {selectedOrder.status === 'invoiced' && (
+            {selectedOrder.status !== 'paid' && (
               <button
                 onClick={() => setShowPaymentModal(true)}
                 className="w-full py-2.5 bg-[#166534] text-white rounded-lg text-[13px] font-medium hover:bg-[#14532d] transition-colors"
               >
-                Catat Pembayaran dari Perusahaan
+                💰 Input Pembayaran dari Perusahaan
               </button>
             )}
           </div>

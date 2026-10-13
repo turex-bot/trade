@@ -110,9 +110,9 @@ export default function Payables() {
         <div className="stat-card border-l-4 border-l-[#166534]">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[11px] text-[#64748b] font-medium">✅ SUDAH DIBAYAR</p>
+              <p className="text-[11px] text-[#64748b] font-medium">✅ SUDAH SAYA BAYAR</p>
               <p className="text-[20px] font-bold text-[#166534] mt-1">{formatCurrency(totalPaid)}</p>
-              <p className="text-[10px] text-[#94a3b8] mt-0.5">Pembayaran ke supplier</p>
+              <p className="text-[10px] text-[#94a3b8] mt-0.5">Saya sudah bayar ke supplier</p>
             </div>
             <div className="w-10 h-10 rounded-xl bg-[#f0fdf4] flex items-center justify-center">
               <CheckCircle2 className="w-5 h-5 text-[#166534]" />
@@ -244,8 +244,8 @@ export default function Payables() {
         ) : (
           <div className="empty-state">
             <TrendingDown className="w-12 h-12 text-[#94a3b8] mb-3" />
-            <h3 className="text-[14px] font-semibold text-[#0f172a]">Tidak ada pembayaran ke supplier</h3>
-            <p className="text-[13px] text-[#64748b] mt-1">Semua pesanan sudah dibayar atau belum ada pesanan</p>
+            <h3 className="text-[14px] font-semibold text-[#0f172a]">Belum ada utang ke supplier</h3>
+            <p className="text-[13px] text-[#64748b] mt-1">Konfirmasi pesanan di halaman Transaksi → Pesanan untuk memulai</p>
           </div>
         )}
       </div>
@@ -333,7 +333,7 @@ export default function Payables() {
                 onClick={() => setShowPaymentModal(true)}
                 className="w-full py-2.5 bg-[#dc2626] text-white rounded-lg text-[13px] font-medium hover:bg-[#b91c1c] transition-colors"
               >
-                Catat Pembayaran ke Supplier
+                💸 Input Pembayaran ke Supplier
               </button>
             )}
           </div>
