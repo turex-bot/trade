@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Search, Eye, FileText, Download, CheckCircle2, Clock, AlertCircle } from 'lucide-react';
+import { Search, Eye, FileText, Download, CheckCircle2, Clock, AlertCircle, Upload } from 'lucide-react';
 import { invoices, Invoice, formatCurrency, formatDate } from '../data/mockData';
-import { PageHeader, Modal, Badge } from '../components/ui';
+import { PageHeader, Modal, Badge, FormField } from '../components/ui';
+import { useToast } from '../components/Toast';
 
 export default function Invoices() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -208,13 +209,93 @@ export default function Invoices() {
             </div>
 
             {selectedInvoice.status !== 'paid' && (
-              <button className="w-full py-2.5 bg-[#166534] text-white rounded-lg text-[13px] font-medium hover:bg-[#14532d] transition-colors">
-                Catat Pembayaran
-              </button>
+              <PaymentRecordingModal invoice={selectedInvoice} />
             )}
           </div>
         )}
       </Modal>
     </div>
+  );
+}
+
+// Payment Recording Modal Component
+function PaymentRecordingModal({ invoice }: { invoice: Invoice }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const toast = useToast();
+  const remainingAmount = invoice.totalAmount - invoice.paidAmount;
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    toast.success('Pembayaran berhasil dicatat', `${invoice.invoiceNumber} telah diupdate`);
+    setIsOpen(false);
+  };
+
+  return (
+    <>
+      <button
+        onClick={() => setIsOpen(true)}
+        className="w-full py-2.5 bg-[#166534] text-white rounded-lg text-[13px] font-medium hover:bg-[#14532d] transition-colors"
+      >
+        Catat Pembayaran
+      </button>
+
+      <Modal
+        open={isOpen}
+        onClose={() => setIsOpen(false)}
+        title="Catat Pembayaran"
+        subtitle={invoice.invoiceNumber}
+        footer={
+          <>
+            <button onClick={() => setIsOpen(false)} className="btn btn-secondary">Batal</button>
+            <button onClick={handleSubmit} className="btn btn-primary">Simpan Pembayaran</button>
+          </>
+        }
+      >
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="bg-[#f0fdf4] rounded-lg p-4 border border-[#dcfce7]">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[12px] text-[#166534] font-medium">Sisa Tagihan</span>
+              <span className="text-[18px] font-bold text-[#166534]">{formatCurrency(remainingAmount)}</span>
+            </div>
+            <div className="text-[11px] text-[#16a34a]">
+              Total: {formatCurrency(invoice.totalAmount)} | Sudah dibayar: {formatCurrency(invoice.paidAmount)}
+            </div>
+          </div>
+
+          <FormField label="Tanggal Pembayaran" required>
+            <input type="date" className="input-field" defaultValue={new Date().toISOString().split('T')[0]} />
+          </FormField>
+
+          <FormField label="Jumlah Pembayaran" required hint={`Maksimal: ${formatCurrency(remainingAmount)}`}>
+            <input type="number" className="input-field" placeholder={remainingAmount.toString()} max={remainingAmount} />
+          </FormField>
+
+          <FormField label="Metode Pembayaran" required>
+            <select className="input-field">
+              <option value="">Pilih Metode</option>
+              <option value="transfer">Transfer Bank</option>
+              <option value="cash">Cash / Tunai</option>
+              <option value="giro">Giro</option>
+              <option value="cek">Cek</option>
+            </select>
+          </FormField>
+
+          <FormField label="Nomor Referensi / Bukti" hint="Nomor transaksi atau bukti transfer">
+            <input type="text" className="input-field" placeholder="TRF-BCA-001234" />
+          </FormField>
+
+          <FormField label="Upload Bukti Transfer" hint="Opsional, maks 5MB (JPG, PNG, PDF)">
+            <div className="border-2 border-dashed border-[#e2e8f0] rounded-lg p-4 text-center hover:border-[#166534] transition-colors cursor-pointer bg-[#f8fafc]">
+              <Upload className="w-6 h-6 text-[#94a3b8] mx-auto mb-2" />
+              <p className="text-[12px] text-[#64748b]">Klik untuk upload file</p>
+            </div>
+          </FormField>
+
+          <FormField label="Catatan">
+            <textarea className="input-field min-h-[60px] resize-none" placeholder="Catatan tambahan (opsional)" />
+          </FormField>
+        </form>
+      </Modal>
+    </>
   );
 }

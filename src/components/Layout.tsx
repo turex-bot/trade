@@ -6,6 +6,7 @@ import {
   ChevronRight, Bell, Search, User, Settings, Package,
   Truck, Receipt, AlertCircle
 } from 'lucide-react';
+import { NotificationCenter } from './NotificationCenter';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -44,6 +45,7 @@ const navItems: NavItem[] = [
     ]
   },
   { label: 'Laporan', icon: BarChart3, path: '/reports' },
+  { label: 'Audit Log', icon: FileText, path: '/audit-log' },
 ];
 
 export default function Layout({ children }: LayoutProps) {
@@ -217,15 +219,12 @@ export default function Layout({ children }: LayoutProps) {
             </div>
 
             {/* Notifications */}
-            <button className="relative p-2 rounded-lg hover:bg-[#f1f5f9] text-[#64748b]">
-              <Bell className="w-[18px] h-[18px]" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full pulse-dot"></span>
-            </button>
+            <NotificationCenter />
 
             {/* Settings */}
-            <button className="p-2 rounded-lg hover:bg-[#f1f5f9] text-[#64748b]">
+            <Link to="/settings" className="p-2 rounded-lg hover:bg-[#f1f5f9] text-[#64748b]">
               <Settings className="w-[18px] h-[18px]" />
-            </button>
+            </Link>
           </div>
         </header>
 
