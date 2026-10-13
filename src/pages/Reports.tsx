@@ -7,19 +7,9 @@ import {
 import { orders, formatCurrency, formatDate } from '../data/mockData';
 import { PageHeader, Tabs } from '../components/ui';
 
-const profitByCompany = [
-  { name: 'PT. Plywood Nusantara', profit: 1350000, volume: 90 },
-  { name: 'PT. Kayu Jaya Abadi', profit: 525000, volume: 35 },
-  { name: 'PT. Multi Plywood Indonesia', profit: 2100000, volume: 140 },
-  { name: 'PT. Timber Solutions', profit: 375000, volume: 25 },
-];
+const profitByCompany: { name: string; profit: number; volume: number }[] = [];
 
-const volumeBySpec = [
-  { name: 'Meranti', value: 190, color: '#166534' },
-  { name: 'Keruing', value: 35, color: '#16a34a' },
-  { name: 'Akasia', value: 40, color: '#22c55e' },
-  { name: 'Sengon', value: 25, color: '#4ade80' },
-];
+const volumeBySpec: { name: string; value: number; color: string }[] = [];
 
 export default function Reports() {
   const [activeTab, setActiveTab] = useState('transactions');

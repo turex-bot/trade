@@ -15,49 +15,8 @@ interface Notification {
 export function NotificationCenter() {
   const [isOpen, setIsOpen] = useState(false);
 
-  // Generate notifications from data
-  const notifications: Notification[] = [
-    // Overdue invoices
-    ...invoices.filter(inv => inv.agingCategory === '>60 hari').map(inv => ({
-      id: `overdue-${inv.id}`,
-      type: 'critical' as const,
-      title: 'Invoice Overdue Kritis',
-      message: `${inv.invoiceNumber} - ${inv.companyName} sudah ${inv.agingDays} hari lewat jatuh tempo (${formatCurrency(inv.totalAmount - inv.paidAmount)})`,
-      timestamp: '2 jam lalu',
-      action: { label: 'Lihat Detail', path: '/finance/invoices' },
-      read: false,
-    })),
-    // Invoices approaching due date
-    ...invoices.filter(inv => inv.agingDays > 0 && inv.agingDays <= 7 && inv.status !== 'paid').map(inv => ({
-      id: `approaching-${inv.id}`,
-      type: 'warning' as const,
-      title: 'Invoice Mendekati Jatuh Tempo',
-      message: `${inv.invoiceNumber} akan jatuh tempo dalam ${7 - inv.agingDays} hari`,
-      timestamp: '5 jam lalu',
-      action: { label: 'Lihat Invoice', path: '/finance/invoices' },
-      read: false,
-    })),
-    // Orders pending approval
-    ...orders.filter(o => o.status === 'draft').map(order => ({
-      id: `draft-${order.id}`,
-      type: 'info' as const,
-      title: 'Pesanan Menunggu Approval',
-      message: `${order.orderNumber} dari ${order.companyName} menunggu konfirmasi`,
-      timestamp: '1 hari lalu',
-      action: { label: 'Review Pesanan', path: '/transactions/orders' },
-      read: true,
-    })),
-    // Monthly profit milestone
-    {
-      id: 'profit-milestone',
-      type: 'success' as const,
-      title: 'Profit Bulan Ini',
-      message: `Profit bulan ini mencapai ${formatCurrency(1950000)} (+8.2% dari bulan lalu)`,
-      timestamp: '1 hari lalu',
-      action: { label: 'Lihat Laporan', path: '/reports' },
-      read: true,
-    },
-  ];
+  // Generate notifications from data - Empty for testing
+  const notifications: Notification[] = [];
 
   const unreadCount = notifications.filter(n => !n.read).length;
 

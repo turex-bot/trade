@@ -12,18 +12,7 @@ interface AuditLog {
   type: 'create' | 'update' | 'delete' | 'login' | 'payment';
 }
 
-const auditLogs: AuditLog[] = [
-  { id: '1', timestamp: '2025-02-20 14:32:15', user: 'Finance 1', action: 'Catat Pembayaran', entity: 'INV-202501-0003', details: 'Pembayaran Rp30.000.000 via transfer', type: 'payment' },
-  { id: '2', timestamp: '2025-02-20 10:15:42', user: 'Admin User', action: 'Update Harga', entity: 'Meranti 20-30cm Grade A', details: 'Harga jual diubah dari Rp1.200.000 ke Rp1.215.000', type: 'update' },
-  { id: '3', timestamp: '2025-02-19 16:45:30', user: 'Operator 1', action: 'Buat Surat Jalan', entity: 'DO-202502-0001', details: 'Surat jalan untuk order ORD-202502-0001', type: 'create' },
-  { id: '4', timestamp: '2025-02-19 14:20:18', user: 'Admin User', action: 'Konfirmasi Pesanan', entity: 'ORD-202502-0002', details: 'Status diubah dari draft ke confirmed', type: 'update' },
-  { id: '5', timestamp: '2025-02-19 09:05:55', user: 'Operator 1', action: 'Buat Pesanan', entity: 'ORD-202502-0003', details: 'Pesanan baru dari PT. Timber Solutions', type: 'create' },
-  { id: '6', timestamp: '2025-02-18 15:30:22', user: 'Finance 1', action: 'Catat Pembayaran', entity: 'INV-202501-0001', details: 'Pembayaran lunas Rp60.750.000', type: 'payment' },
-  { id: '7', timestamp: '2025-02-18 11:12:08', user: 'Admin User', action: 'Login', entity: 'Sistem', details: 'Login berhasil dari IP 192.168.1.100', type: 'login' },
-  { id: '8', timestamp: '2025-02-17 16:55:44', user: 'Admin User', action: 'Tambah Supplier', entity: 'Depo Kayu Lestari', details: 'Supplier baru ditambahkan ke sistem', type: 'create' },
-  { id: '9', timestamp: '2025-02-17 10:30:15', user: 'Operator 1', action: 'Update Pengiriman', entity: 'DO-202501-0002', details: 'Status diubah menjadi received', type: 'update' },
-  { id: '10', timestamp: '2025-02-16 14:22:33', user: 'Finance 1', action: 'Generate Invoice', entity: 'INV-202501-0004', details: 'Invoice otomatis dari DO-202501-0003', type: 'create' },
-];
+const auditLogs: AuditLog[] = [];
 
 export default function AuditLog() {
   const [searchQuery, setSearchQuery] = useState('');
