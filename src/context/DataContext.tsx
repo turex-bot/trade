@@ -217,7 +217,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
   };
 
   const deleteOrder = (id: string) => {
+    // Hapus order
     setOrders(prev => prev.filter(o => o.id !== id));
+    
+    // Hapus juga semua pembayaran terkait dengan order ini
+    setPayments(prev => prev.filter(p => p.invoiceId !== id));
   };
 
   const addDelivery = (delivery: Omit<Delivery, 'id' | 'doNumber'>) => {

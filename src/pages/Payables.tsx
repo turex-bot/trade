@@ -267,7 +267,7 @@ export default function Payables() {
                       <td className="text-[13px] text-[#0f172a] font-medium">{order.supplierName}</td>
                       <td className="text-right text-[13px] font-medium text-[#0f172a]">{order.totalVolume.toFixed(2)} m³</td>
                       <td className="text-right text-[12px] text-[#64748b]">{formatCurrency(totalPrice)}</td>
-                      <td className="text-right text-[12px] text-[#f59e0b] font-medium">- {formatCurrency(margin)}</td>
+                      <td className="text-right text-[12px] text-[#f59e0b] font-medium">{formatCurrency(margin)}</td>
                       <td className="text-right text-[13px] font-bold text-[#dc2626]">{formatCurrency(payableToSupplier)}</td>
                       <td className="text-center">{getStatusBadge(order.status)}</td>
                       <td className="text-center">
@@ -370,7 +370,7 @@ export default function Payables() {
               </div>
               <div className="flex items-center justify-between">
                 <p className="text-[11px] text-[#64748b]">Margin Trader ({selectedOrder.totalVolume.toFixed(2)} m³ × Rp15.000)</p>
-                <p className="text-[13px] font-medium text-[#f59e0b]">- {formatCurrency(selectedOrder.totalVolume * TRADER_MARGIN_PER_M3)}</p>
+                <p className="text-[13px] font-medium text-[#f59e0b]">{formatCurrency(selectedOrder.totalVolume * TRADER_MARGIN_PER_M3)}</p>
               </div>
               <div className="pt-3 border-t border-[#fecaca] flex items-center justify-between">
                 <p className="text-[12px] font-semibold text-[#dc2626]">Total Bayar ke Supplier</p>
@@ -415,7 +415,7 @@ export default function Payables() {
               </div>
               <div className="flex items-center justify-between text-[12px]">
                 <span className="text-[#64748b]">Margin Trader ({selectedOrder.totalVolume.toFixed(2)} m³ × Rp15.000):</span>
-                <span className="text-[#f59e0b]">- {formatCurrency(selectedOrder.totalVolume * TRADER_MARGIN_PER_M3)}</span>
+                <span className="text-[#f59e0b]">{formatCurrency(selectedOrder.totalVolume * TRADER_MARGIN_PER_M3)}</span>
               </div>
               <div className="pt-2 border-t border-[#fecaca] flex items-center justify-between">
                 <span className="text-[13px] font-semibold text-[#dc2626]">Bayar ke Supplier:</span>
