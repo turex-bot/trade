@@ -49,13 +49,15 @@ export default function Payables() {
   const TRADER_MARGIN_PER_M3 = 15000; // Rp15.000 per m³
 
   // Fungsi hitung total pembayaran ke supplier
+  // LOGIKA: Trader bayar ke supplier = Total Harga - Margin
+  // Karena margin adalah keuntungan trader, bukan biaya ke supplier
   const calculateTotalPayable = (order: any) => {
-    const baseCost = order.totalValue; // Harga beli dasar
-    const marginCost = order.totalVolume * TRADER_MARGIN_PER_M3; // Margin trader
-    return baseCost + marginCost;
+    const totalPrice = order.totalValue; // Total harga pesanan
+    const margin = order.totalVolume * TRADER_MARGIN_PER_M3; // Margin trader
+    return totalPrice - margin; // Yang dibayar ke supplier
   };
 
-  // Hitung total hutang (harga beli + margin)
+  // Hitung total hutang ke supplier
   const totalPayable = filteredOrders
     .filter(o => o.status !== 'paid')
     .reduce((sum, o) => sum + calculateTotalPayable(o), 0);
@@ -64,9 +66,13 @@ export default function Payables() {
     .filter(o => o.status === 'paid')
     .reduce((sum, o) => sum + calculateTotalPayable(o), 0);
 
-  // Hitung total margin saja
+  // Hitung total margin (profit trader)
   const totalMargin = filteredOrders
     .reduce((sum, o) => sum + (o.totalVolume * TRADER_MARGIN_PER_M3), 0);
+
+  // Hitung total harga pokok (yang diterima dari perusahaan)
+  const totalBasePrice = filteredOrders
+    .reduce((sum, o) => sum + o.totalValue, 0);
 
   const handleRecordPayment = (order: any) => {
     setSelectedOrder(order);
@@ -87,36 +93,36 @@ export default function Payables() {
         subtitle="Kelola pembayaran ke depo/supplier kayu"
       />
 
-      {/* Summary Cards */}
+      {/* KPI Cards - Utang & Profit */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
-        <div className="stat-card">
+        <div className="stat-card border-l-4 border-l-[#dc2626]">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[11px] text-[#64748b]">Total Harus Bayar</p>
+              <p className="text-[11px] text-[#64748b] font-medium">💸 UTANG KE SUPPLIER</p>
               <p className="text-[20px] font-bold text-[#dc2626] mt-1">{formatCurrency(totalPayable)}</p>
-              <p className="text-[10px] text-[#94a3b8] mt-0.5">Harga beli + margin</p>
+              <p className="text-[10px] text-[#94a3b8] mt-0.5">Yang harus dibayar ke supplier</p>
             </div>
             <div className="w-10 h-10 rounded-xl bg-[#fef2f2] flex items-center justify-center">
               <TrendingDown className="w-5 h-5 text-[#dc2626]" />
             </div>
           </div>
         </div>
-        <div className="stat-card">
+        <div className="stat-card border-l-4 border-l-[#166534]">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[11px] text-[#64748b]">Harga Beli Kayu</p>
-              <p className="text-[20px] font-bold text-[#0f172a] mt-1">{formatCurrency(totalPayable - totalMargin)}</p>
-              <p className="text-[10px] text-[#94a3b8] mt-0.5">Biaya dasar ke supplier</p>
+              <p className="text-[11px] text-[#64748b] font-medium">✅ SUDAH DIBAYAR</p>
+              <p className="text-[20px] font-bold text-[#166534] mt-1">{formatCurrency(totalPaid)}</p>
+              <p className="text-[10px] text-[#94a3b8] mt-0.5">Pembayaran ke supplier</p>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-[#f1f5f9] flex items-center justify-center">
-              <Package className="w-5 h-5 text-[#64748b]" />
+            <div className="w-10 h-10 rounded-xl bg-[#f0fdf4] flex items-center justify-center">
+              <CheckCircle2 className="w-5 h-5 text-[#166534]" />
             </div>
           </div>
         </div>
-        <div className="stat-card">
+        <div className="stat-card border-l-4 border-l-[#f59e0b]">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[11px] text-[#64748b]">Margin Trader</p>
+              <p className="text-[11px] text-[#64748b] font-medium">💰 MARGIN TRADER</p>
               <p className="text-[20px] font-bold text-[#f59e0b] mt-1">{formatCurrency(totalMargin)}</p>
               <p className="text-[10px] text-[#94a3b8] mt-0.5">Rp15.000 × total m³</p>
             </div>
@@ -125,15 +131,33 @@ export default function Payables() {
             </div>
           </div>
         </div>
-        <div className="stat-card">
+        <div className="stat-card border-l-4 border-l-[#2563eb]">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[11px] text-[#64748b]">Sudah Dibayar</p>
-              <p className="text-[20px] font-bold text-[#166534] mt-1">{formatCurrency(totalPaid)}</p>
+              <p className="text-[11px] text-[#64748b] font-medium">📦 TOTAL PESANAN</p>
+              <p className="text-[20px] font-bold text-[#2563eb] mt-1">{filteredOrders.length}</p>
+              <p className="text-[10px] text-[#94a3b8] mt-0.5">{filteredOrders.filter(o => o.status !== 'paid').length} belum lunas</p>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-[#f0fdf4] flex items-center justify-center">
-              <CheckCircle2 className="w-5 h-5 text-[#166534]" />
+            <div className="w-10 h-10 rounded-xl bg-[#eff6ff] flex items-center justify-center">
+              <Package className="w-5 h-5 text-[#2563eb]" />
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Info Box - Penjelasan Logika */}
+      <div className="bg-[#fef2f2] border border-[#fecaca] rounded-lg p-4 mb-4">
+        <div className="flex items-start gap-3">
+          <div className="w-8 h-8 rounded-lg bg-[#dc2626] flex items-center justify-center flex-shrink-0">
+            <span className="text-white text-sm">💡</span>
+          </div>
+          <div className="flex-1">
+            <p className="text-[13px] font-semibold text-[#991b1b] mb-1">Logika Pembayaran ke Supplier</p>
+            <p className="text-[12px] text-[#7f1d1d]">
+              Total yang harus dibayar ke supplier = <strong>Total Harga Pesanan - Margin Trader</strong>
+              <br />
+              <span className="text-[11px]">Contoh: Total Rp60.000.000 - (50 m³ × Rp15.000) = Rp59.250.000</span>
+            </p>
           </div>
         </div>
       </div>
@@ -165,18 +189,18 @@ export default function Payables() {
                   <th>Tanggal</th>
                   <th>Supplier</th>
                   <th className="text-right">Volume</th>
-                  <th className="text-right">Harga Beli</th>
+                  <th className="text-right">Total Harga</th>
                   <th className="text-right">Margin</th>
-                  <th className="text-right">Total Bayar</th>
+                  <th className="text-right">Bayar ke Supplier</th>
                   <th className="text-center">Status</th>
                   <th className="text-center">Aksi</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredOrders.map((order) => {
-                  const baseCost = order.totalValue;
-                  const marginCost = order.totalVolume * TRADER_MARGIN_PER_M3;
-                  const totalPayable = baseCost + marginCost;
+                  const totalPrice = order.totalValue; // Total harga pesanan
+                  const margin = order.totalVolume * TRADER_MARGIN_PER_M3; // Margin trader
+                  const payableToSupplier = totalPrice - margin; // Yang dibayar ke supplier
                   
                   return (
                     <tr key={order.id}>
@@ -187,9 +211,9 @@ export default function Payables() {
                       <td className="text-[12px] text-[#64748b]">{formatDate(order.orderDate)}</td>
                       <td className="text-[13px] text-[#0f172a] font-medium">{order.supplierName}</td>
                       <td className="text-right text-[13px] font-medium text-[#0f172a]">{order.totalVolume.toFixed(2)} m³</td>
-                      <td className="text-right text-[12px] text-[#64748b]">{formatCurrency(baseCost)}</td>
-                      <td className="text-right text-[12px] text-[#f59e0b] font-medium">{formatCurrency(marginCost)}</td>
-                      <td className="text-right text-[13px] font-bold text-[#dc2626]">{formatCurrency(totalPayable)}</td>
+                      <td className="text-right text-[12px] text-[#64748b]">{formatCurrency(totalPrice)}</td>
+                      <td className="text-right text-[12px] text-[#f59e0b] font-medium">- {formatCurrency(margin)}</td>
+                      <td className="text-right text-[13px] font-bold text-[#dc2626]">{formatCurrency(payableToSupplier)}</td>
                       <td className="text-center">{getStatusBadge(order.status)}</td>
                       <td className="text-center">
                         <div className="flex items-center justify-center gap-1">
@@ -286,16 +310,21 @@ export default function Payables() {
                 <p className="text-[13px] font-semibold text-[#0f172a]">{selectedOrder.totalVolume.toFixed(2)} m³</p>
               </div>
               <div className="flex items-center justify-between">
-                <p className="text-[11px] text-[#64748b]">Harga Beli Kayu</p>
+                <p className="text-[11px] text-[#64748b]">Total Harga Pesanan</p>
                 <p className="text-[13px] font-medium text-[#0f172a]">{formatCurrency(selectedOrder.totalValue)}</p>
               </div>
               <div className="flex items-center justify-between">
                 <p className="text-[11px] text-[#64748b]">Margin Trader ({selectedOrder.totalVolume.toFixed(2)} m³ × Rp15.000)</p>
-                <p className="text-[13px] font-medium text-[#f59e0b]">{formatCurrency(selectedOrder.totalVolume * TRADER_MARGIN_PER_M3)}</p>
+                <p className="text-[13px] font-medium text-[#f59e0b]">- {formatCurrency(selectedOrder.totalVolume * TRADER_MARGIN_PER_M3)}</p>
               </div>
               <div className="pt-3 border-t border-[#fecaca] flex items-center justify-between">
-                <p className="text-[12px] font-semibold text-[#dc2626]">Total Harus Bayar ke Supplier</p>
+                <p className="text-[12px] font-semibold text-[#dc2626]">Total Bayar ke Supplier</p>
                 <p className="text-[18px] font-bold text-[#dc2626]">{formatCurrency(calculateTotalPayable(selectedOrder))}</p>
+              </div>
+              <div className="bg-[#fef3c7] rounded p-2 mt-2">
+                <p className="text-[11px] text-[#92400e] text-center">
+                  💡 Profit Anda: <strong>{formatCurrency(selectedOrder.totalVolume * TRADER_MARGIN_PER_M3)}</strong>
+                </p>
               </div>
             </div>
 
@@ -326,16 +355,21 @@ export default function Payables() {
           <div className="space-y-4">
             <div className="bg-[#fef2f2] rounded-lg p-4 border border-[#fecaca] space-y-2">
               <div className="flex items-center justify-between text-[12px]">
-                <span className="text-[#64748b]">Harga Beli Kayu:</span>
+                <span className="text-[#64748b]">Total Harga Pesanan:</span>
                 <span className="text-[#0f172a]">{formatCurrency(selectedOrder.totalValue)}</span>
               </div>
               <div className="flex items-center justify-between text-[12px]">
                 <span className="text-[#64748b]">Margin Trader ({selectedOrder.totalVolume.toFixed(2)} m³ × Rp15.000):</span>
-                <span className="text-[#f59e0b]">{formatCurrency(selectedOrder.totalVolume * TRADER_MARGIN_PER_M3)}</span>
+                <span className="text-[#f59e0b]">- {formatCurrency(selectedOrder.totalVolume * TRADER_MARGIN_PER_M3)}</span>
               </div>
               <div className="pt-2 border-t border-[#fecaca] flex items-center justify-between">
-                <span className="text-[13px] font-semibold text-[#dc2626]">Total Harus Bayar:</span>
+                <span className="text-[13px] font-semibold text-[#dc2626]">Bayar ke Supplier:</span>
                 <span className="text-[20px] font-bold text-[#dc2626]">{formatCurrency(calculateTotalPayable(selectedOrder))}</span>
+              </div>
+              <div className="bg-[#fef3c7] rounded p-2 mt-2">
+                <p className="text-[11px] text-[#92400e] text-center">
+                  💡 Profit Anda: <strong>{formatCurrency(selectedOrder.totalVolume * TRADER_MARGIN_PER_M3)}</strong>
+                </p>
               </div>
             </div>
 

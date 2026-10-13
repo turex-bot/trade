@@ -37,13 +37,13 @@ export default function Receivables() {
   const TRADER_MARGIN_PER_M3 = 15000; // Rp15.000 per m³
 
   // Fungsi hitung total tagihan ke perusahaan
+  // LOGIKA: Perusahaan bayar TOTAL HARGA (tidak ada pengurangan margin)
+  // Margin adalah keuntungan trader yang sudah termasuk dalam harga jual
   const calculateTotalReceivable = (order: any) => {
-    const basePrice = order.totalValue; // Harga beli dasar
-    const margin = order.totalVolume * TRADER_MARGIN_PER_M3; // Margin trader
-    return basePrice + margin; // Harga jual ke perusahaan
+    return order.totalValue; // Total harga pesanan (perusahaan bayar penuh)
   };
 
-  // Hitung total piutang (harga jual = harga beli + margin)
+  // Hitung total piutang dari perusahaan
   const totalReceivable = filteredOrders
     .filter(o => o.status === 'invoiced')
     .reduce((sum, o) => sum + calculateTotalReceivable(o), 0);
@@ -52,7 +52,7 @@ export default function Receivables() {
     .filter(o => o.status === 'paid')
     .reduce((sum, o) => sum + calculateTotalReceivable(o), 0);
 
-  // Hitung total margin
+  // Hitung total margin (profit trader)
   const totalMargin = filteredOrders
     .reduce((sum, o) => sum + (o.totalVolume * TRADER_MARGIN_PER_M3), 0);
 
@@ -68,36 +68,36 @@ export default function Receivables() {
         subtitle="Kelola pembayaran dari perusahaan plywood"
       />
 
-      {/* Summary Cards */}
+      {/* KPI Cards - Piutang & Profit */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
-        <div className="stat-card">
+        <div className="stat-card border-l-4 border-l-[#166534]">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[11px] text-[#64748b]">Total Piutang</p>
+              <p className="text-[11px] text-[#64748b] font-medium">💰 PIUTANG DARI PERUSAHAAN</p>
               <p className="text-[20px] font-bold text-[#166534] mt-1">{formatCurrency(totalReceivable)}</p>
-              <p className="text-[10px] text-[#94a3b8] mt-0.5">Harga jual ke perusahaan</p>
+              <p className="text-[10px] text-[#94a3b8] mt-0.5">Yang harus diterima dari perusahaan</p>
             </div>
             <div className="w-10 h-10 rounded-xl bg-[#f0fdf4] flex items-center justify-center">
               <TrendingUp className="w-5 h-5 text-[#166534]" />
             </div>
           </div>
         </div>
-        <div className="stat-card">
+        <div className="stat-card border-l-4 border-l-[#166534]">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[11px] text-[#64748b]">Harga Pokok</p>
-              <p className="text-[20px] font-bold text-[#0f172a] mt-1">{formatCurrency(totalReceivable - totalMargin)}</p>
-              <p className="text-[10px] text-[#94a3b8] mt-0.5">Harga beli dari supplier</p>
+              <p className="text-[11px] text-[#64748b] font-medium">✅ SUDAH DITERIMA</p>
+              <p className="text-[20px] font-bold text-[#166534] mt-1">{formatCurrency(totalReceived)}</p>
+              <p className="text-[10px] text-[#94a3b8] mt-0.5">Pembayaran dari perusahaan</p>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-[#f1f5f9] flex items-center justify-center">
-              <Package className="w-5 h-5 text-[#64748b]" />
+            <div className="w-10 h-10 rounded-xl bg-[#f0fdf4] flex items-center justify-center">
+              <CheckCircle2 className="w-5 h-5 text-[#166534]" />
             </div>
           </div>
         </div>
-        <div className="stat-card">
+        <div className="stat-card border-l-4 border-l-[#f59e0b]">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[11px] text-[#64748b]">Margin Trader</p>
+              <p className="text-[11px] text-[#64748b] font-medium">💎 PROFIT TRADER</p>
               <p className="text-[20px] font-bold text-[#f59e0b] mt-1">{formatCurrency(totalMargin)}</p>
               <p className="text-[10px] text-[#94a3b8] mt-0.5">Rp15.000 × total m³</p>
             </div>
@@ -106,15 +106,33 @@ export default function Receivables() {
             </div>
           </div>
         </div>
-        <div className="stat-card">
+        <div className="stat-card border-l-4 border-l-[#2563eb]">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[11px] text-[#64748b]">Sudah Diterima</p>
-              <p className="text-[20px] font-bold text-[#166534] mt-1">{formatCurrency(totalReceived)}</p>
+              <p className="text-[11px] text-[#64748b] font-medium">📄 TOTAL INVOICE</p>
+              <p className="text-[20px] font-bold text-[#2563eb] mt-1">{filteredOrders.length}</p>
+              <p className="text-[10px] text-[#94a3b8] mt-0.5">{filteredOrders.filter(o => o.status === 'invoiced').length} belum dibayar</p>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-[#f0fdf4] flex items-center justify-center">
-              <CheckCircle2 className="w-5 h-5 text-[#166534]" />
+            <div className="w-10 h-10 rounded-xl bg-[#eff6ff] flex items-center justify-center">
+              <Package className="w-5 h-5 text-[#2563eb]" />
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Info Box - Penjelasan Logika */}
+      <div className="bg-[#f0fdf4] border border-[#dcfce7] rounded-lg p-4 mb-4">
+        <div className="flex items-start gap-3">
+          <div className="w-8 h-8 rounded-lg bg-[#166534] flex items-center justify-center flex-shrink-0">
+            <span className="text-white text-sm">💡</span>
+          </div>
+          <div className="flex-1">
+            <p className="text-[13px] font-semibold text-[#14532d] mb-1">Logika Pembayaran dari Perusahaan</p>
+            <p className="text-[12px] text-[#166534]">
+              Perusahaan membayar <strong>TOTAL HARGA PESANAN</strong> (harga pokok + margin sudah termasuk)
+              <br />
+              <span className="text-[11px]">Contoh: Total Rp60.000.000 (sudah termasuk margin Rp750.000)</span>
+            </p>
           </div>
         </div>
       </div>
@@ -146,18 +164,16 @@ export default function Receivables() {
                   <th>Tanggal</th>
                   <th>Perusahaan</th>
                   <th className="text-right">Volume</th>
-                  <th className="text-right">Harga Pokok</th>
-                  <th className="text-right">Margin</th>
                   <th className="text-right">Total Tagih</th>
+                  <th className="text-right">Profit</th>
                   <th className="text-center">Status</th>
                   <th className="text-center">Aksi</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredOrders.map((order) => {
-                  const basePrice = order.totalValue;
-                  const margin = order.totalVolume * TRADER_MARGIN_PER_M3;
-                  const totalReceivable = basePrice + margin;
+                  const totalPrice = order.totalValue; // Total harga (perusahaan bayar penuh)
+                  const margin = order.totalVolume * TRADER_MARGIN_PER_M3; // Profit trader
                   
                   return (
                     <tr key={order.id}>
@@ -168,9 +184,8 @@ export default function Receivables() {
                       <td className="text-[12px] text-[#64748b]">{formatDate(order.orderDate)}</td>
                       <td className="text-[13px] text-[#0f172a] font-medium">{order.companyName}</td>
                       <td className="text-right text-[13px] font-medium text-[#0f172a]">{order.totalVolume.toFixed(2)} m³</td>
-                      <td className="text-right text-[12px] text-[#64748b]">{formatCurrency(basePrice)}</td>
-                      <td className="text-right text-[12px] text-[#f59e0b] font-medium">{formatCurrency(margin)}</td>
-                      <td className="text-right text-[13px] font-bold text-[#166534]">{formatCurrency(totalReceivable)}</td>
+                      <td className="text-right text-[13px] font-bold text-[#166534]">{formatCurrency(totalPrice)}</td>
+                      <td className="text-right text-[12px] text-[#f59e0b] font-semibold">{formatCurrency(margin)}</td>
                       <td className="text-center">{getStatusBadge(order.status)}</td>
                       <td className="text-center">
                         <div className="flex items-center justify-center gap-1">
@@ -267,16 +282,21 @@ export default function Receivables() {
                 <p className="text-[13px] font-semibold text-[#0f172a]">{selectedOrder.totalVolume.toFixed(2)} m³</p>
               </div>
               <div className="flex items-center justify-between">
-                <p className="text-[11px] text-[#64748b]">Harga Pokok (dari supplier)</p>
+                <p className="text-[11px] text-[#64748b]">Total Tagihan ke Perusahaan</p>
                 <p className="text-[13px] font-medium text-[#0f172a]">{formatCurrency(selectedOrder.totalValue)}</p>
               </div>
               <div className="flex items-center justify-between">
-                <p className="text-[11px] text-[#64748b]">Margin Trader ({selectedOrder.totalVolume.toFixed(2)} m³ × Rp15.000)</p>
+                <p className="text-[11px] text-[#64748b]">Profit Anda (Margin)</p>
                 <p className="text-[13px] font-medium text-[#f59e0b]">{formatCurrency(selectedOrder.totalVolume * TRADER_MARGIN_PER_M3)}</p>
               </div>
               <div className="pt-3 border-t border-[#dcfce7] flex items-center justify-between">
-                <p className="text-[12px] font-semibold text-[#166534]">Total Tagihan ke Perusahaan</p>
+                <p className="text-[12px] font-semibold text-[#166534]">Total Diterima dari Perusahaan</p>
                 <p className="text-[18px] font-bold text-[#166534]">{formatCurrency(calculateTotalReceivable(selectedOrder))}</p>
+              </div>
+              <div className="bg-[#fef3c7] rounded p-2 mt-2">
+                <p className="text-[11px] text-[#92400e] text-center">
+                  💡 Perusahaan membayar total harga, profit Anda sudah termasuk
+                </p>
               </div>
             </div>
 
@@ -307,16 +327,21 @@ export default function Receivables() {
           <div className="space-y-4">
             <div className="bg-[#f0fdf4] rounded-lg p-4 border border-[#dcfce7] space-y-2">
               <div className="flex items-center justify-between text-[12px]">
-                <span className="text-[#64748b]">Harga Pokok:</span>
+                <span className="text-[#64748b]">Total Tagihan:</span>
                 <span className="text-[#0f172a]">{formatCurrency(selectedOrder.totalValue)}</span>
               </div>
               <div className="flex items-center justify-between text-[12px]">
-                <span className="text-[#64748b]">Margin Trader ({selectedOrder.totalVolume.toFixed(2)} m³ × Rp15.000):</span>
+                <span className="text-[#64748b]">Profit Anda:</span>
                 <span className="text-[#f59e0b]">{formatCurrency(selectedOrder.totalVolume * TRADER_MARGIN_PER_M3)}</span>
               </div>
               <div className="pt-2 border-t border-[#dcfce7] flex items-center justify-between">
-                <span className="text-[13px] font-semibold text-[#166534]">Total Harus Diterima:</span>
+                <span className="text-[13px] font-semibold text-[#166534]">Diterima dari Perusahaan:</span>
                 <span className="text-[20px] font-bold text-[#166534]">{formatCurrency(calculateTotalReceivable(selectedOrder))}</span>
+              </div>
+              <div className="bg-[#fef3c7] rounded p-2 mt-2">
+                <p className="text-[11px] text-[#92400e] text-center">
+                  💡 Perusahaan membayar total harga, profit Anda sudah termasuk
+                </p>
               </div>
             </div>
 
