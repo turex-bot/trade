@@ -1,10 +1,15 @@
 import { useState } from 'react';
 import { Search, Eye, FileText, Download, CheckCircle2, Clock, AlertCircle, Upload } from 'lucide-react';
-import { invoices, Invoice, formatCurrency, formatDate } from '../data/mockData';
+import { Invoice } from '../data/mockData';
 import { PageHeader, Modal, Badge, FormField } from '../components/ui';
+import { useData } from '../context/DataContext';
 import { useToast } from '../components/Toast';
+import { formatCurrency, formatDate } from '../data/mockData';
 
 export default function Invoices() {
+  const { invoices, updateInvoice, addPayment } = useData();
+  const toast = useToast();
+  
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
@@ -116,47 +121,55 @@ export default function Invoices() {
 
       {/* Invoices Table */}
       <div className="card">
-        <div className="overflow-x-auto">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>No. Invoice</th>
-                <th>Perusahaan</th>
-                <th className="text-right">Total</th>
-                <th className="text-right">Dibayar</th>
-                <th className="text-right">Sisa</th>
-                <th className="text-center">Jatuh Tempo</th>
-                <th className="text-center">Aging</th>
-                <th className="text-center">Status</th>
-                <th className="text-center">Aksi</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredInvoices.map((inv) => (
-                <tr key={inv.id} className={inv.agingCategory === '>60 hari' ? 'bg-[#fef2f2]/30' : ''}>
-                  <td>
-                    <span className="font-semibold text-[#166534] text-[12px]">{inv.invoiceNumber}</span>
-                  </td>
-                  <td className="text-[13px] text-[#0f172a] font-medium">{inv.companyName}</td>
-                  <td className="text-right text-[13px] font-medium text-[#0f172a]">{formatCurrency(inv.totalAmount)}</td>
-                  <td className="text-right text-[13px] text-[#166534]">{formatCurrency(inv.paidAmount)}</td>
-                  <td className="text-right text-[13px] font-bold text-[#dc2626]">{formatCurrency(inv.totalAmount - inv.paidAmount)}</td>
-                  <td className="text-center text-[12px] text-[#64748b]">{formatDate(inv.dueDate)}</td>
-                  <td className="text-center">{getAgingBadge(inv.agingCategory)}</td>
-                  <td className="text-center">{getStatusBadge(inv.status)}</td>
-                  <td className="text-center">
-                    <button
-                      onClick={() => setSelectedInvoice(inv)}
-                      className="p-1.5 rounded-lg hover:bg-[#f1f5f9] text-[#94a3b8] hover:text-[#166534]"
-                    >
-                      <Eye className="w-4 h-4" />
-                    </button>
-                  </td>
+        {filteredInvoices.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>No. Invoice</th>
+                  <th>Perusahaan</th>
+                  <th className="text-right">Total</th>
+                  <th className="text-right">Dibayar</th>
+                  <th className="text-right">Sisa</th>
+                  <th className="text-center">Jatuh Tempo</th>
+                  <th className="text-center">Aging</th>
+                  <th className="text-center">Status</th>
+                  <th className="text-center">Aksi</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {filteredInvoices.map((inv) => (
+                  <tr key={inv.id} className={inv.agingCategory === '>60 hari' ? 'bg-[#fef2f2]/30' : ''}>
+                    <td>
+                      <span className="font-semibold text-[#166534] text-[12px]">{inv.invoiceNumber}</span>
+                    </td>
+                    <td className="text-[13px] text-[#0f172a] font-medium">{inv.companyName}</td>
+                    <td className="text-right text-[13px] font-medium text-[#0f172a]">{formatCurrency(inv.totalAmount)}</td>
+                    <td className="text-right text-[13px] text-[#166534]">{formatCurrency(inv.paidAmount)}</td>
+                    <td className="text-right text-[13px] font-bold text-[#dc2626]">{formatCurrency(inv.totalAmount - inv.paidAmount)}</td>
+                    <td className="text-center text-[12px] text-[#64748b]">{formatDate(inv.dueDate)}</td>
+                    <td className="text-center">{getAgingBadge(inv.agingCategory)}</td>
+                    <td className="text-center">{getStatusBadge(inv.status)}</td>
+                    <td className="text-center">
+                      <button
+                        onClick={() => setSelectedInvoice(inv)}
+                        className="p-1.5 rounded-lg hover:bg-[#f1f5f9] text-[#94a3b8] hover:text-[#166534]"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="empty-state">
+            <FileText className="w-12 h-12 text-[#94a3b8] mb-3" />
+            <h3 className="text-[14px] font-semibold text-[#0f172a]">Belum ada invoice</h3>
+            <p className="text-[13px] text-[#64748b] mt-1">Invoice akan otomatis ter-generate setelah pengiriman diterima</p>
+          </div>
+        )}
       </div>
 
       {/* Invoice Detail Modal */}
@@ -221,11 +234,38 @@ export default function Invoices() {
 // Payment Recording Modal Component
 function PaymentRecordingModal({ invoice }: { invoice: Invoice }) {
   const [isOpen, setIsOpen] = useState(false);
+  const { updateInvoice, addPayment } = useData();
   const toast = useToast();
   const remainingAmount = invoice.totalAmount - invoice.paidAmount;
 
+  const [paymentData, setPaymentData] = useState({
+    paymentDate: new Date().toISOString().split('T')[0],
+    amount: remainingAmount,
+    method: 'transfer',
+    reference: '',
+    notes: ''
+  });
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    const newPaidAmount = invoice.paidAmount + paymentData.amount;
+    const newStatus = newPaidAmount >= invoice.totalAmount ? 'paid' : 'partial';
+    
+    updateInvoice(invoice.id, {
+      paidAmount: newPaidAmount,
+      status: newStatus
+    });
+
+    addPayment({
+      invoiceId: invoice.id,
+      invoiceNumber: invoice.invoiceNumber,
+      paymentDate: paymentData.paymentDate,
+      amount: paymentData.amount,
+      method: paymentData.method,
+      reference: paymentData.reference
+    });
+
     toast.success('Pembayaran berhasil dicatat', `${invoice.invoiceNumber} telah diupdate`);
     setIsOpen(false);
   };
@@ -263,16 +303,33 @@ function PaymentRecordingModal({ invoice }: { invoice: Invoice }) {
           </div>
 
           <FormField label="Tanggal Pembayaran" required>
-            <input type="date" className="input-field" defaultValue={new Date().toISOString().split('T')[0]} />
+            <input 
+              type="date" 
+              value={paymentData.paymentDate}
+              onChange={(e) => setPaymentData({...paymentData, paymentDate: e.target.value})}
+              className="input-field" 
+              required
+            />
           </FormField>
 
           <FormField label="Jumlah Pembayaran" required hint={`Maksimal: ${formatCurrency(remainingAmount)}`}>
-            <input type="number" className="input-field" placeholder={remainingAmount.toString()} max={remainingAmount} />
+            <input 
+              type="number" 
+              value={paymentData.amount}
+              onChange={(e) => setPaymentData({...paymentData, amount: parseInt(e.target.value) || 0})}
+              className="input-field" 
+              max={remainingAmount}
+              required
+            />
           </FormField>
 
           <FormField label="Metode Pembayaran" required>
-            <select className="input-field">
-              <option value="">Pilih Metode</option>
+            <select 
+              value={paymentData.method}
+              onChange={(e) => setPaymentData({...paymentData, method: e.target.value})}
+              className="input-field"
+              required
+            >
               <option value="transfer">Transfer Bank</option>
               <option value="cash">Cash / Tunai</option>
               <option value="giro">Giro</option>
@@ -281,18 +338,22 @@ function PaymentRecordingModal({ invoice }: { invoice: Invoice }) {
           </FormField>
 
           <FormField label="Nomor Referensi / Bukti" hint="Nomor transaksi atau bukti transfer">
-            <input type="text" className="input-field" placeholder="TRF-BCA-001234" />
-          </FormField>
-
-          <FormField label="Upload Bukti Transfer" hint="Opsional, maks 5MB (JPG, PNG, PDF)">
-            <div className="border-2 border-dashed border-[#e2e8f0] rounded-lg p-4 text-center hover:border-[#166534] transition-colors cursor-pointer bg-[#f8fafc]">
-              <Upload className="w-6 h-6 text-[#94a3b8] mx-auto mb-2" />
-              <p className="text-[12px] text-[#64748b]">Klik untuk upload file</p>
-            </div>
+            <input 
+              type="text" 
+              value={paymentData.reference}
+              onChange={(e) => setPaymentData({...paymentData, reference: e.target.value})}
+              className="input-field" 
+              placeholder="TRF-BCA-001234" 
+            />
           </FormField>
 
           <FormField label="Catatan">
-            <textarea className="input-field min-h-[60px] resize-none" placeholder="Catatan tambahan (opsional)" />
+            <textarea 
+              value={paymentData.notes}
+              onChange={(e) => setPaymentData({...paymentData, notes: e.target.value})}
+              className="input-field min-h-[60px] resize-none" 
+              placeholder="Catatan tambahan (opsional)" 
+            />
           </FormField>
         </form>
       </Modal>

@@ -1,15 +1,98 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Search, Edit2, TrendingUp, Calculator } from 'lucide-react';
-import { prices, formatCurrency, formatDate } from '../data/mockData';
+import { Price } from '../data/mockData';
 import { PageHeader, Modal, Badge, FormField } from '../components/ui';
+import { useData } from '../context/DataContext';
+import { useToast } from '../components/Toast';
+import { formatCurrency } from '../data/mockData';
 
 export default function Prices() {
+  const { prices, woodSpecs, addPrice, updatePrice } = useData();
+  const toast = useToast();
+  
   const [searchQuery, setSearchQuery] = useState('');
   const [showForm, setShowForm] = useState(false);
+  const [editingPrice, setEditingPrice] = useState<Price | null>(null);
+
+  const [formData, setFormData] = useState({
+    woodSpecId: '',
+    woodSpecName: '',
+    buyPrice: 0,
+    buyPricePerLog: 0,
+    traderMargin: 15000,
+    sellPrice: 0,
+    sellPricePerLog: 0,
+    effectiveDate: new Date().toISOString().split('T')[0],
+    isActive: true
+  });
 
   const filteredPrices = prices.filter(p =>
     p.woodSpecName.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // Auto-kalkulasi harga per batang dan harga jual
+  useEffect(() => {
+    const spec = woodSpecs.find(s => s.id === formData.woodSpecId);
+    if (spec && formData.buyPrice > 0) {
+      const buyPricePerLog = formData.buyPrice * spec.volumePerLog;
+      const sellPrice = formData.buyPrice + formData.traderMargin;
+      const sellPricePerLog = sellPrice * spec.volumePerLog;
+      
+      setFormData(prev => ({
+        ...prev,
+        buyPricePerLog: Math.round(buyPricePerLog),
+        sellPrice: sellPrice,
+        sellPricePerLog: Math.round(sellPricePerLog),
+        woodSpecName: `${spec.woodType} ${spec.diameterRange} Grade ${spec.grade}`
+      }));
+    }
+  }, [formData.buyPrice, formData.traderMargin, formData.woodSpecId, woodSpecs]);
+
+  const handleOpenAdd = () => {
+    setEditingPrice(null);
+    setFormData({
+      woodSpecId: '',
+      woodSpecName: '',
+      buyPrice: 0,
+      buyPricePerLog: 0,
+      traderMargin: 15000,
+      sellPrice: 0,
+      sellPricePerLog: 0,
+      effectiveDate: new Date().toISOString().split('T')[0],
+      isActive: true
+    });
+    setShowForm(true);
+  };
+
+  const handleEdit = (price: Price) => {
+    setEditingPrice(price);
+    setFormData({
+      woodSpecId: price.woodSpecId,
+      woodSpecName: price.woodSpecName,
+      buyPrice: price.buyPrice,
+      buyPricePerLog: price.buyPricePerLog,
+      traderMargin: price.traderMargin,
+      sellPrice: price.sellPrice,
+      sellPricePerLog: price.sellPricePerLog,
+      effectiveDate: price.effectiveDate,
+      isActive: price.isActive
+    });
+    setShowForm(true);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (editingPrice) {
+      updatePrice(editingPrice.id, formData);
+      toast.success('Harga berhasil diupdate');
+    } else {
+      addPrice(formData);
+      toast.success('Harga berhasil ditambahkan');
+    }
+    
+    setShowForm(false);
+  };
 
   return (
     <div className="animate-fade-in">
@@ -17,7 +100,7 @@ export default function Prices() {
         title="Daftar Harga"
         subtitle="Kelola harga beli, margin trader, dan harga jual kayu"
         actions={
-          <button onClick={() => setShowForm(true)} className="btn btn-primary">
+          <button onClick={handleOpenAdd} className="btn btn-primary">
             <Plus className="w-4 h-4" />
             Tambah Harga
           </button>
@@ -41,129 +124,215 @@ export default function Prices() {
       </div>
 
       {/* Price Table */}
-      <div className="card mb-4">
-        <div className="overflow-x-auto">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Spesifikasi Kayu</th>
-                <th className="text-right">Harga Beli Depo</th>
-                <th className="text-right">Margin Trader</th>
-                <th className="text-right">Harga Jual</th>
-                <th className="text-center">Berlaku Sejak</th>
-                <th className="text-center">Status</th>
-                <th className="text-center">Aksi</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredPrices.map((price) => (
-                <tr key={price.id}>
-                  <td>
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
-                        <TrendingUp className="w-4 h-4 text-amber-600" />
-                      </div>
-                      <span className="font-semibold text-[#0f172a] text-[13px]">{price.woodSpecName}</span>
-                    </div>
-                  </td>
-                  <td className="text-right">
-                    <span className="text-[13px] text-[#334155]">{formatCurrency(price.buyPrice)}</span>
-                    <span className="text-[11px] text-[#94a3b8]">/m³</span>
-                  </td>
-                  <td className="text-right">
-                    <span className="text-[13px] font-semibold text-[#166534]">+{formatCurrency(price.traderMargin)}</span>
-                    <span className="text-[11px] text-[#94a3b8]">/m³</span>
-                  </td>
-                  <td className="text-right">
-                    <span className="text-[13px] font-bold text-[#0f172a]">{formatCurrency(price.sellPrice)}</span>
-                    <span className="text-[11px] text-[#94a3b8]">/m³</span>
-                  </td>
-                  <td className="text-center text-[12px] text-[#64748b]">{formatDate(price.effectiveDate)}</td>
-                  <td className="text-center">
-                    <Badge variant={price.isActive ? 'green' : 'gray'} dot>
-                      {price.isActive ? 'Aktif' : 'Tidak Aktif'}
-                    </Badge>
-                  </td>
-                  <td className="text-center">
-                    <button className="p-1.5 rounded-lg hover:bg-[#f1f5f9] text-[#94a3b8]">
-                      <Edit2 className="w-4 h-4" />
-                    </button>
-                  </td>
+      {filteredPrices.length > 0 ? (
+        <div className="card mb-4">
+          <div className="overflow-x-auto">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Spesifikasi Kayu</th>
+                  <th className="text-right">Harga Beli/m³</th>
+                  <th className="text-right">Harga Beli/Batang</th>
+                  <th className="text-right">Margin/m³</th>
+                  <th className="text-right">Harga Jual/m³</th>
+                  <th className="text-right">Harga Jual/Batang</th>
+                  <th className="text-center">Berlaku</th>
+                  <th className="text-center">Status</th>
+                  <th className="text-center">Aksi</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {filteredPrices.map((price) => (
+                  <tr key={price.id}>
+                    <td>
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
+                          <TrendingUp className="w-4 h-4 text-amber-600" />
+                        </div>
+                        <span className="font-semibold text-[#0f172a] text-[13px]">{price.woodSpecName}</span>
+                      </div>
+                    </td>
+                    <td className="text-right">
+                      <span className="text-[13px] text-[#334155]">{formatCurrency(price.buyPrice)}</span>
+                    </td>
+                    <td className="text-right">
+                      <span className="text-[13px] font-medium text-[#334155]">{formatCurrency(price.buyPricePerLog)}</span>
+                    </td>
+                    <td className="text-right">
+                      <span className="text-[13px] font-semibold text-[#166534]">+{formatCurrency(price.traderMargin)}</span>
+                    </td>
+                    <td className="text-right">
+                      <span className="text-[13px] font-bold text-[#0f172a]">{formatCurrency(price.sellPrice)}</span>
+                    </td>
+                    <td className="text-right">
+                      <span className="text-[13px] font-bold text-[#166534]">{formatCurrency(price.sellPricePerLog)}</span>
+                    </td>
+                    <td className="text-center text-[12px] text-[#64748b]">{new Date(price.effectiveDate).toLocaleDateString('id-ID')}</td>
+                    <td className="text-center">
+                      <Badge variant={price.isActive ? 'green' : 'gray'} dot>
+                        {price.isActive ? 'Aktif' : 'Tidak Aktif'}
+                      </Badge>
+                    </td>
+                    <td className="text-center">
+                      <button 
+                        onClick={() => handleEdit(price)}
+                        className="p-1.5 rounded-lg hover:bg-[#f1f5f9] text-[#94a3b8]"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="card mb-4">
+          <div className="empty-state">
+            <TrendingUp className="w-12 h-12 text-[#94a3b8] mb-3" />
+            <h3 className="text-[14px] font-semibold text-[#0f172a]">Belum ada daftar harga</h3>
+            <p className="text-[13px] text-[#64748b] mt-1">Tambahkan harga untuk spesifikasi kayu</p>
+            <button onClick={handleOpenAdd} className="btn btn-primary mt-4">
+              <Plus className="w-4 h-4" />
+              Tambah Harga Pertama
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Price Calculation Example */}
-      <div className="card">
-        <div className="p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <Calculator className="w-4 h-4 text-[#166534]" />
-            <h3 className="text-[14px] font-semibold text-[#0f172a]">Contoh Perhitungan Margin</h3>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-            <div className="bg-[#f8fafc] rounded-lg p-4 border border-[#f1f5f9]">
-              <p className="text-[11px] text-[#64748b] mb-1">Harga Beli Depo</p>
-              <p className="text-[15px] font-bold text-[#0f172a]">Rp1.200.000</p>
-              <p className="text-[11px] text-[#94a3b8]">per m³</p>
+      {prices.length > 0 && (
+        <div className="card">
+          <div className="p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <Calculator className="w-4 h-4 text-[#166534]" />
+              <h3 className="text-[14px] font-semibold text-[#0f172a]">Contoh Perhitungan Margin</h3>
             </div>
-            <div className="bg-[#f8fafc] rounded-lg p-4 border border-[#f1f5f9]">
-              <p className="text-[11px] text-[#64748b] mb-1">Margin Trader</p>
-              <p className="text-[15px] font-bold text-[#166534]">+Rp15.000</p>
-              <p className="text-[11px] text-[#94a3b8]">per m³</p>
-            </div>
-            <div className="bg-[#f8fafc] rounded-lg p-4 border border-[#f1f5f9]">
-              <p className="text-[11px] text-[#64748b] mb-1">Harga Jual</p>
-              <p className="text-[15px] font-bold text-[#0f172a]">Rp1.215.000</p>
-              <p className="text-[11px] text-[#94a3b8]">per m³</p>
-            </div>
-            <div className="bg-[#f0fdf4] rounded-lg p-4 border border-[#dcfce7]">
-              <p className="text-[11px] text-[#166534] mb-1 font-medium">Profit (50 m³)</p>
-              <p className="text-[15px] font-bold text-[#166534]">Rp750.000</p>
-              <p className="text-[11px] text-[#16a34a]">50 × Rp15.000</p>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+              <div className="bg-[#f8fafc] rounded-lg p-4 border border-[#f1f5f9]">
+                <p className="text-[11px] text-[#64748b] mb-1">Harga Beli Depo</p>
+                <p className="text-[15px] font-bold text-[#0f172a]">{formatCurrency(prices[0]?.buyPrice || 0)}</p>
+                <p className="text-[11px] text-[#94a3b8]">per m³</p>
+              </div>
+              <div className="bg-[#f8fafc] rounded-lg p-4 border border-[#f1f5f9]">
+                <p className="text-[11px] text-[#64748b] mb-1">Margin Trader</p>
+                <p className="text-[15px] font-bold text-[#166534]">+{formatCurrency(prices[0]?.traderMargin || 0)}</p>
+                <p className="text-[11px] text-[#94a3b8]">per m³</p>
+              </div>
+              <div className="bg-[#f8fafc] rounded-lg p-4 border border-[#f1f5f9]">
+                <p className="text-[11px] text-[#64748b] mb-1">Harga Jual</p>
+                <p className="text-[15px] font-bold text-[#0f172a]">{formatCurrency(prices[0]?.sellPrice || 0)}</p>
+                <p className="text-[11px] text-[#94a3b8]">per m³</p>
+              </div>
+              <div className="bg-[#f0fdf4] rounded-lg p-4 border border-[#dcfce7]">
+                <p className="text-[11px] text-[#166534] mb-1 font-medium">Profit (50 m³)</p>
+                <p className="text-[15px] font-bold text-[#166534]">{formatCurrency((prices[0]?.traderMargin || 0) * 50)}</p>
+                <p className="text-[11px] text-[#16a34a]">50 × {formatCurrency(prices[0]?.traderMargin || 0)}</p>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Form Modal */}
       <Modal
         open={showForm}
         onClose={() => setShowForm(false)}
-        title="Tambah Harga Baru"
+        title={editingPrice ? 'Edit Harga' : 'Tambah Harga Baru'}
         subtitle="Atur harga beli dan margin untuk spesifikasi kayu"
         footer={
           <>
             <button onClick={() => setShowForm(false)} className="btn btn-secondary">Batal</button>
-            <button onClick={() => setShowForm(false)} className="btn btn-primary">Simpan</button>
+            <button onClick={handleSubmit} className="btn btn-primary">Simpan</button>
           </>
         }
       >
-        <div className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <FormField label="Spesifikasi Kayu" required>
-            <select className="input-field">
+            <select 
+              value={formData.woodSpecId}
+              onChange={(e) => setFormData({...formData, woodSpecId: e.target.value})}
+              className="input-field"
+              required
+            >
               <option value="">Pilih Spesifikasi</option>
-              <option>Meranti 20-30cm Grade A</option>
-              <option>Meranti 30-40cm Grade A</option>
-              <option>Keruing 20-30cm Grade B</option>
-              <option>Akasia 15-25cm Grade B</option>
-              <option>Sengon 20-30cm Grade C</option>
+              {woodSpecs.map(spec => (
+                <option key={spec.id} value={spec.id}>
+                  {spec.woodType} {spec.diameterRange} Grade {spec.grade}
+                </option>
+              ))}
             </select>
           </FormField>
+          
           <div className="grid grid-cols-2 gap-4">
             <FormField label="Harga Beli Depo (per m³)" required>
-              <input type="number" className="input-field" placeholder="1200000" />
+              <input 
+                type="number" 
+                value={formData.buyPrice || ''}
+                onChange={(e) => setFormData({...formData, buyPrice: parseInt(e.target.value) || 0})}
+                className="input-field" 
+                placeholder="1200000" 
+                required
+              />
             </FormField>
             <FormField label="Margin Trader (per m³)" hint="Default: Rp15.000">
-              <input type="number" defaultValue={15000} className="input-field" />
+              <input 
+                type="number" 
+                value={formData.traderMargin}
+                onChange={(e) => setFormData({...formData, traderMargin: parseInt(e.target.value) || 0})}
+                className="input-field" 
+                required
+              />
             </FormField>
           </div>
+
+          {/* Auto-kalkulasi preview */}
+          {formData.woodSpecId && formData.buyPrice > 0 && (
+            <div className="bg-[#f0fdf4] rounded-lg p-4 border border-[#dcfce7]">
+              <p className="text-[11px] text-[#166534] font-medium mb-2">Kalkulasi Otomatis</p>
+              <div className="grid grid-cols-2 gap-3 text-[12px]">
+                <div>
+                  <p className="text-[#64748b]">Harga Jual/m³</p>
+                  <p className="font-bold text-[#166534]">{formatCurrency(formData.sellPrice)}</p>
+                </div>
+                <div>
+                  <p className="text-[#64748b]">Harga Beli/Batang</p>
+                  <p className="font-semibold text-[#0f172a]">{formatCurrency(formData.buyPricePerLog)}</p>
+                </div>
+                <div>
+                  <p className="text-[#64748b]">Harga Jual/Batang</p>
+                  <p className="font-bold text-[#166534]">{formatCurrency(formData.sellPricePerLog)}</p>
+                </div>
+                <div>
+                  <p className="text-[#64748b]">Profit per m³</p>
+                  <p className="font-semibold text-[#166534]">{formatCurrency(formData.traderMargin)}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
           <FormField label="Tanggal Berlaku" required>
-            <input type="date" className="input-field" />
+            <input 
+              type="date" 
+              value={formData.effectiveDate}
+              onChange={(e) => setFormData({...formData, effectiveDate: e.target.value})}
+              className="input-field" 
+              required
+            />
           </FormField>
-        </div>
+
+          <FormField label="Status">
+            <select 
+              value={formData.isActive ? 'true' : 'false'}
+              onChange={(e) => setFormData({...formData, isActive: e.target.value === 'true'})}
+              className="input-field"
+            >
+              <option value="true">Aktif</option>
+              <option value="false">Tidak Aktif</option>
+            </select>
+          </FormField>
+        </form>
       </Modal>
     </div>
   );

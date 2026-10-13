@@ -1,11 +1,16 @@
 import { useState } from 'react';
-import { Plus, Search, Eye, AlertTriangle, FileText, Truck, Package, CheckCircle2, Calculator } from 'lucide-react';
-import { orders, Order, woodSpecs, prices, formatCurrency, formatDate } from '../data/mockData';
+import { Plus, Search, Eye, AlertTriangle, Calculator } from 'lucide-react';
+import { Order } from '../data/mockData';
 import { PageHeader, Modal, Badge, FormField, Tabs } from '../components/ui';
+import { useData } from '../context/DataContext';
+import { useToast } from '../components/Toast';
+import { formatCurrency, formatDate } from '../data/mockData';
 
 export default function Orders() {
+  const { orders, companies, suppliers, woodSpecs, prices, addOrder, updateOrder } = useData();
+  const toast = useToast();
+  
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [activeTab, setActiveTab] = useState('all');
@@ -13,7 +18,7 @@ export default function Orders() {
   const filteredOrders = orders.filter(o => {
     const matchesSearch = o.orderNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
       o.companyName.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = !statusFilter || o.status === statusFilter;
+    const matchesStatus = !activeTab || activeTab === 'all' || o.status === activeTab;
     return matchesSearch && matchesStatus;
   });
 
@@ -38,8 +43,6 @@ export default function Orders() {
     { key: 'in_delivery', label: 'Dikirim', count: orders.filter(o => o.status === 'in_delivery').length },
     { key: 'paid', label: 'Lunas', count: orders.filter(o => o.status === 'paid').length },
   ];
-
-  const displayOrders = activeTab === 'all' ? filteredOrders : filteredOrders.filter(o => o.status === activeTab);
 
   return (
     <div className="animate-fade-in">
@@ -75,54 +78,68 @@ export default function Orders() {
 
       {/* Orders Table */}
       <div className="card">
-        <div className="overflow-x-auto">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>No. Order</th>
-                <th>Tanggal</th>
-                <th>Perusahaan</th>
-                <th>Depo</th>
-                <th className="text-right">Jumlah Batang</th>
-                <th className="text-right">Volume</th>
-                <th className="text-right">Nilai</th>
-                <th className="text-center">Status</th>
-                <th className="text-center">Aksi</th>
-              </tr>
-            </thead>
-            <tbody>
-              {displayOrders.map((order) => (
-                <tr key={order.id}>
-                  <td>
-                    <span className="font-semibold text-[#166534] text-[12px]">{order.orderNumber}</span>
-                  </td>
-                  <td className="text-[12px] text-[#64748b]">{formatDate(order.orderDate)}</td>
-                  <td className="text-[13px] text-[#0f172a] font-medium">{order.companyName}</td>
-                  <td className="text-[12px] text-[#64748b]">{order.supplierName}</td>
-                  <td className="text-right text-[13px] font-semibold text-[#0f172a]">
-                    {order.items.reduce((sum, item) => sum + item.numberOfLogs, 0)} batang
-                  </td>
-                  <td className="text-right text-[13px] font-medium text-[#0f172a]">{order.totalVolume.toFixed(2)} m³</td>
-                  <td className="text-right text-[13px] font-medium text-[#0f172a]">{formatCurrency(order.totalValue)}</td>
-                  <td className="text-center">{getStatusBadge(order.status)}</td>
-                  <td className="text-center">
-                    <button
-                      onClick={() => setSelectedOrder(order)}
-                      className="p-1.5 rounded-lg hover:bg-[#f1f5f9] text-[#94a3b8] hover:text-[#166534]"
-                    >
-                      <Eye className="w-4 h-4" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <div className="px-4 py-3 bg-[#f8fafc] border-t border-[#f1f5f9]">
-          <p className="text-[12px] text-[#64748b]">
-            Menampilkan <span className="font-semibold text-[#0f172a]">{displayOrders.length}</span> pesanan
-          </p>
-        </div>
+        {filteredOrders.length > 0 ? (
+          <>
+            <div className="overflow-x-auto">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>No. Order</th>
+                    <th>Tanggal</th>
+                    <th>Perusahaan</th>
+                    <th>Depo</th>
+                    <th className="text-right">Jumlah Batang</th>
+                    <th className="text-right">Volume</th>
+                    <th className="text-right">Nilai</th>
+                    <th className="text-center">Status</th>
+                    <th className="text-center">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredOrders.map((order) => (
+                    <tr key={order.id}>
+                      <td>
+                        <span className="font-semibold text-[#166534] text-[12px]">{order.orderNumber}</span>
+                      </td>
+                      <td className="text-[12px] text-[#64748b]">{formatDate(order.orderDate)}</td>
+                      <td className="text-[13px] text-[#0f172a] font-medium">{order.companyName}</td>
+                      <td className="text-[12px] text-[#64748b]">{order.supplierName}</td>
+                      <td className="text-right text-[13px] font-semibold text-[#0f172a]">
+                        {order.items.reduce((sum, item) => sum + item.numberOfLogs, 0)} batang
+                      </td>
+                      <td className="text-right text-[13px] font-medium text-[#0f172a]">{order.totalVolume.toFixed(2)} m³</td>
+                      <td className="text-right text-[13px] font-medium text-[#0f172a]">{formatCurrency(order.totalValue)}</td>
+                      <td className="text-center">{getStatusBadge(order.status)}</td>
+                      <td className="text-center">
+                        <button
+                          onClick={() => setSelectedOrder(order)}
+                          className="p-1.5 rounded-lg hover:bg-[#f1f5f9] text-[#94a3b8] hover:text-[#166534]"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="px-4 py-3 bg-[#f8fafc] border-t border-[#f1f5f9]">
+              <p className="text-[12px] text-[#64748b]">
+                Menampilkan <span className="font-semibold text-[#0f172a]">{filteredOrders.length}</span> pesanan
+              </p>
+            </div>
+          </>
+        ) : (
+          <div className="empty-state">
+            <Plus className="w-12 h-12 text-[#94a3b8] mb-3" />
+            <h3 className="text-[14px] font-semibold text-[#0f172a]">Belum ada pesanan</h3>
+            <p className="text-[13px] text-[#64748b] mt-1">Buat pesanan pertama Anda</p>
+            <button onClick={() => setShowForm(true)} className="btn btn-primary mt-4">
+              <Plus className="w-4 h-4" />
+              Buat Pesanan
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Order Detail Modal */}
@@ -184,7 +201,7 @@ export default function Orders() {
             <div className="bg-[#f0fdf4] rounded-lg p-4 flex items-center justify-between border border-[#dcfce7]">
               <div>
                 <p className="text-[11px] text-[#166534]">Total Volume</p>
-                <p className="text-[15px] font-bold text-[#166534]">{selectedOrder.totalVolume} m³</p>
+                <p className="text-[15px] font-bold text-[#166534]">{selectedOrder.totalVolume.toFixed(2)} m³</p>
               </div>
               <div className="text-right">
                 <p className="text-[11px] text-[#166534]">Total Nilai</p>
@@ -203,80 +220,157 @@ export default function Orders() {
       </Modal>
 
       {/* Create Order Modal */}
-      <CreateOrderModal open={showForm} onClose={() => setShowForm(false)} />
+      <CreateOrderModal 
+        open={showForm} 
+        onClose={() => setShowForm(false)} 
+        companies={companies}
+        suppliers={suppliers}
+        woodSpecs={woodSpecs}
+        prices={prices}
+        addOrder={addOrder}
+        toast={toast}
+      />
     </div>
   );
 }
 
-// Create Order Modal Component dengan logika batang → kubikasi otomatis
-function CreateOrderModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+// Create Order Modal Component
+interface CreateOrderModalProps {
+  open: boolean;
+  onClose: () => void;
+  companies: any[];
+  suppliers: any[];
+  woodSpecs: any[];
+  prices: any[];
+  addOrder: (order: any) => void;
+  toast: any;
+}
+
+function CreateOrderModal({ open, onClose, companies, suppliers, woodSpecs, prices, addOrder, toast }: CreateOrderModalProps) {
+  const [companyId, setCompanyId] = useState('');
+  const [supplierId, setSupplierId] = useState('');
+  const [orderDate, setOrderDate] = useState(new Date().toISOString().split('T')[0]);
+  const [notes, setNotes] = useState('');
+  
+  // Item kayu state
   const [selectedSpecId, setSelectedSpecId] = useState('');
   const [numberOfLogs, setNumberOfLogs] = useState<number>(0);
 
   const selectedSpec = woodSpecs.find(s => s.id === selectedSpecId);
   const selectedPrice = prices.find(p => p.woodSpecId === selectedSpecId && p.isActive);
+  const selectedCompany = companies.find(c => c.id === companyId);
+  const selectedSupplier = suppliers.find(s => s.id === supplierId);
 
-  // Auto-kalkulasi kubikasi
-  const autoVolume = selectedSpec && numberOfLogs > 0 
-    ? numberOfLogs * selectedSpec.volumePerLog 
-    : 0;
+  // Auto-kalkulasi
+  const autoVolume = selectedSpec && numberOfLogs > 0 ? numberOfLogs * selectedSpec.volumePerLog : 0;
+  const autoSellValue = selectedPrice && numberOfLogs > 0 ? numberOfLogs * selectedPrice.sellPricePerLog : 0;
+  const autoBuyValue = selectedPrice && numberOfLogs > 0 ? numberOfLogs * selectedPrice.buyPricePerLog : 0;
 
-  // Auto-kalkulasi harga
-  const autoBuyValue = selectedPrice && numberOfLogs > 0
-    ? numberOfLogs * selectedPrice.buyPricePerLog
-    : 0;
-  
-  const autoSellValue = selectedPrice && numberOfLogs > 0
-    ? numberOfLogs * selectedPrice.sellPricePerLog
-    : 0;
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!companyId || !supplierId || !selectedSpecId || numberOfLogs <= 0) {
+      toast.error('Lengkapi semua field', 'Pastikan semua data sudah diisi');
+      return;
+    }
 
-  const handleReset = () => {
+    const orderItem = {
+      id: Math.random().toString(36).substr(2, 9),
+      woodSpecId: selectedSpecId,
+      woodSpecName: selectedSpec ? `${selectedSpec.woodType} ${selectedSpec.diameterRange} Grade ${selectedSpec.grade}` : '',
+      numberOfLogs: numberOfLogs,
+      volumePerLog: selectedSpec?.volumePerLog || 0,
+      volume: autoVolume,
+      buyPricePerLog: selectedPrice?.buyPricePerLog || 0,
+      sellPricePerLog: selectedPrice?.sellPricePerLog || 0,
+      buyPrice: selectedPrice?.buyPrice || 0,
+      sellPrice: selectedPrice?.sellPrice || 0,
+      totalBuyValue: autoBuyValue,
+      totalSellValue: autoSellValue,
+    };
+
+    addOrder({
+      orderDate,
+      companyId,
+      companyName: selectedCompany?.name || '',
+      supplierId,
+      supplierName: selectedSupplier?.name || '',
+      status: 'draft',
+      items: [orderItem],
+      totalVolume: autoVolume,
+      totalValue: autoSellValue,
+      notes,
+    });
+
+    toast.success('Pesanan berhasil dibuat', 'Pesanan baru telah ditambahkan');
+    
+    // Reset
+    setCompanyId('');
+    setSupplierId('');
+    setNotes('');
     setSelectedSpecId('');
     setNumberOfLogs(0);
+    onClose();
   };
 
   return (
     <Modal
       open={open}
-      onClose={() => { onClose(); handleReset(); }}
+      onClose={onClose}
       title="Buat Pesanan Baru"
       subtitle="Input jumlah batang, kubikasi dihitung otomatis"
       size="lg"
       footer={
         <>
-          <button onClick={() => { onClose(); handleReset(); }} className="btn btn-secondary">Batal</button>
+          <button onClick={onClose} className="btn btn-secondary">Batal</button>
           <button 
-            onClick={() => { onClose(); handleReset(); }} 
+            onClick={handleSubmit} 
             className="btn btn-primary"
-            disabled={!selectedSpecId || numberOfLogs <= 0}
+            disabled={!companyId || !supplierId || !selectedSpecId || numberOfLogs <= 0}
           >
             Buat Pesanan
           </button>
         </>
       }
     >
-      <div className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <FormField label="Perusahaan Plywood" required>
-            <select className="input-field">
+            <select 
+              value={companyId}
+              onChange={(e) => setCompanyId(e.target.value)}
+              className="input-field"
+              required
+            >
               <option value="">Pilih Perusahaan</option>
-              <option>PT. Plywood Nusantara</option>
-              <option>PT. Kayu Jaya Abadi</option>
-              <option>PT. Multi Plywood Indonesia</option>
+              {companies.filter(c => c.status === 'aktif').map(c => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
             </select>
           </FormField>
           <FormField label="Depo / Supplier" required>
-            <select className="input-field">
+            <select 
+              value={supplierId}
+              onChange={(e) => setSupplierId(e.target.value)}
+              className="input-field"
+              required
+            >
               <option value="">Pilih Depo</option>
-              <option>Depo Kayu Makmur</option>
-              <option>Depo Kayu Sejahtera</option>
-              <option>Depo Kayu Lestari</option>
+              {suppliers.filter(s => s.status === 'aktif').map(s => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
             </select>
           </FormField>
         </div>
         
         <FormField label="Tanggal Order" required>
-          <input type="date" className="input-field" defaultValue={new Date().toISOString().split('T')[0]} />
+          <input 
+            type="date" 
+            value={orderDate}
+            onChange={(e) => setOrderDate(e.target.value)}
+            className="input-field" 
+            required
+          />
         </FormField>
 
         {/* Item Kayu dengan Logika Batang → Kubikasi */}
@@ -287,7 +381,6 @@ function CreateOrderModal({ open, onClose }: { open: boolean; onClose: () => voi
           </div>
           
           <div className="border border-[#e2e8f0] rounded-lg p-4 space-y-4 bg-[#f8fafc]">
-            {/* Pilih Spesifikasi */}
             <FormField label="Spesifikasi Kayu" required hint="Pilih jenis dan diameter kayu">
               <select 
                 className="input-field"
@@ -296,6 +389,7 @@ function CreateOrderModal({ open, onClose }: { open: boolean; onClose: () => voi
                   setSelectedSpecId(e.target.value);
                   setNumberOfLogs(0);
                 }}
+                required
               >
                 <option value="">-- Pilih Spesifikasi --</option>
                 {woodSpecs.map(spec => (
@@ -306,7 +400,6 @@ function CreateOrderModal({ open, onClose }: { open: boolean; onClose: () => voi
               </select>
             </FormField>
 
-            {/* Info Spesifikasi */}
             {selectedSpec && (
               <div className="bg-white rounded-lg p-3 border border-[#e2e8f0]">
                 <div className="grid grid-cols-3 gap-3 text-[12px]">
@@ -326,7 +419,6 @@ function CreateOrderModal({ open, onClose }: { open: boolean; onClose: () => voi
               </div>
             )}
 
-            {/* Input Jumlah Batang */}
             <FormField label="Jumlah Batang" required hint="Masukkan jumlah batang, kubikasi akan dihitung otomatis">
               <div className="relative">
                 <input 
@@ -336,12 +428,12 @@ function CreateOrderModal({ open, onClose }: { open: boolean; onClose: () => voi
                   min="0"
                   value={numberOfLogs || ''}
                   onChange={(e) => setNumberOfLogs(parseInt(e.target.value) || 0)}
+                  required
                 />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[12px] text-[#64748b] font-medium">batang</span>
               </div>
             </FormField>
 
-            {/* Auto Kalkulasi */}
             {selectedSpec && numberOfLogs > 0 && (
               <div className="bg-[#f0fdf4] rounded-lg p-4 border border-[#dcfce7] space-y-3">
                 <p className="text-[12px] font-semibold text-[#166534] flex items-center gap-1.5">
@@ -388,28 +480,28 @@ function CreateOrderModal({ open, onClose }: { open: boolean; onClose: () => voi
                 )}
               </div>
             )}
-
-            <button 
-              onClick={handleReset}
-              className="text-[12px] text-[#64748b] font-medium hover:text-[#166534] hover:underline"
-            >
-              + Tambah Item Lain
-            </button>
           </div>
         </div>
 
-        <div className="bg-[#fefce8] border border-[#fef08a] rounded-lg p-3 flex items-start gap-2">
-          <AlertTriangle className="w-4 h-4 text-[#a16207] mt-0.5 flex-shrink-0" />
-          <div>
-            <p className="text-[12px] font-medium text-[#713f12]">Perhatian Credit Limit</p>
-            <p className="text-[11px] text-[#854d0e] mt-0.5">Pastikan total piutang + nilai pesanan tidak melebihi credit limit perusahaan.</p>
+        {selectedCompany && (
+          <div className="bg-[#fefce8] border border-[#fef08a] rounded-lg p-3 flex items-start gap-2">
+            <AlertTriangle className="w-4 h-4 text-[#a16207] mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="text-[12px] font-medium text-[#713f12]">Credit Limit: {formatCurrency(selectedCompany.creditLimit)}</p>
+              <p className="text-[11px] text-[#854d0e] mt-0.5">Pastikan total piutang + nilai pesanan tidak melebihi credit limit.</p>
+            </div>
           </div>
-        </div>
+        )}
 
         <FormField label="Catatan">
-          <textarea className="input-field min-h-[60px] resize-none" placeholder="Catatan tambahan..." />
+          <textarea 
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            className="input-field min-h-[60px] resize-none" 
+            placeholder="Catatan tambahan..." 
+          />
         </FormField>
-      </div>
+      </form>
     </Modal>
   );
 }
