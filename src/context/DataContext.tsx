@@ -45,9 +45,11 @@ interface DataContextType {
   
   addDelivery: (delivery: Omit<Delivery, 'id' | 'doNumber'>) => void;
   updateDelivery: (id: string, delivery: Partial<Delivery>) => void;
+  deleteDelivery: (id: string) => void;
   
   addInvoice: (invoice: Omit<Invoice, 'id' | 'invoiceNumber'>) => void;
   updateInvoice: (id: string, invoice: Partial<Invoice>) => void;
+  deleteInvoice: (id: string) => void;
   
   addPayment: (payment: Omit<Payment, 'id'>) => void;
 }
@@ -226,12 +228,20 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setDeliveries(prev => prev.map(d => d.id === id ? { ...d, ...updates } : d));
   };
 
+  const deleteDelivery = (id: string) => {
+    setDeliveries(prev => prev.filter(d => d.id !== id));
+  };
+
   const addInvoice = (invoice: Omit<Invoice, 'id' | 'invoiceNumber'>) => {
     setInvoices(prev => [...prev, { ...invoice, id: generateId(), invoiceNumber: generateInvoiceNumber() }]);
   };
 
   const updateInvoice = (id: string, updates: Partial<Invoice>) => {
     setInvoices(prev => prev.map(i => i.id === id ? { ...i, ...updates } : i));
+  };
+
+  const deleteInvoice = (id: string) => {
+    setInvoices(prev => prev.filter(i => i.id !== id));
   };
 
   const addPayment = (payment: Omit<Payment, 'id'>) => {
@@ -264,8 +274,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
     deleteOrder,
     addDelivery,
     updateDelivery,
+    deleteDelivery,
     addInvoice,
     updateInvoice,
+    deleteInvoice,
     addPayment,
   };
 

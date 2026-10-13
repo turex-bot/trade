@@ -8,12 +8,13 @@ import { formatCurrency, formatDate } from '../data/mockData';
 import { formatVolumeM3, formatNumberID } from '../utils/logVolumeFormatter';
 
 export default function Orders() {
-  const { orders, companies, suppliers, woodSpecs, prices, addOrder, updateOrder } = useData();
+  const { orders, companies, suppliers, woodSpecs, prices, addOrder, updateOrder, deleteOrder } = useData();
   const toast = useToast();
   
   const [searchQuery, setSearchQuery] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [orderToDelete, setOrderToDelete] = useState<Order | null>(null);
   const [activeTab, setActiveTab] = useState('all');
 
   const filteredOrders = orders.filter(o => {
@@ -44,6 +45,14 @@ export default function Orders() {
     { key: 'in_delivery', label: 'Dikirim', count: orders.filter(o => o.status === 'in_delivery').length },
     { key: 'paid', label: 'Lunas', count: orders.filter(o => o.status === 'paid').length },
   ];
+
+  const handleDeleteOrder = () => {
+    if (orderToDelete) {
+      deleteOrder(orderToDelete.id);
+      toast.success('Pesanan berhasil dihapus', `${orderToDelete.orderNumber} telah dihapus`);
+      setOrderToDelete(null);
+    }
+  };
 
   return (
     <div className="animate-fade-in">
@@ -114,12 +123,22 @@ export default function Orders() {
                       <td className="text-right text-[13px] font-medium text-[#0f172a]">{formatCurrency(order.totalValue)}</td>
                       <td className="text-center">{getStatusBadge(order.status)}</td>
                       <td className="text-center">
-                        <button
-                          onClick={() => setSelectedOrder(order)}
-                          className="p-1.5 rounded-lg hover:bg-[#f1f5f9] text-[#94a3b8] hover:text-[#166534]"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
+                        <div className="flex items-center justify-center gap-1">
+                          <button
+                            onClick={() => setSelectedOrder(order)}
+                            className="p-1.5 rounded-lg hover:bg-[#f1f5f9] text-[#94a3b8] hover:text-[#166534]"
+                            title="Lihat Detail"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => setOrderToDelete(order)}
+                            className="p-1.5 rounded-lg hover:bg-[#fef2f2] text-[#94a3b8] hover:text-[#dc2626]"
+                            title="Hapus Pesanan"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -218,6 +237,45 @@ export default function Orders() {
                 <p className="text-[12px] text-[#334155] bg-[#f8fafc] rounded-lg p-3">{selectedOrder.notes}</p>
               </div>
             )}
+          </div>
+        )}
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        open={!!orderToDelete}
+        onClose={() => setOrderToDelete(null)}
+        title="Hapus Pesanan"
+        subtitle="Konfirmasi penghapusan pesanan"
+        footer={
+          <>
+            <button onClick={() => setOrderToDelete(null)} className="btn btn-secondary">Batal</button>
+            <button onClick={handleDeleteOrder} className="btn btn-danger">
+              <Trash2 className="w-4 h-4" />
+              Hapus
+            </button>
+          </>
+        }
+      >
+        {orderToDelete && (
+          <div className="space-y-4">
+            <div className="bg-[#fef2f2] border border-[#fecaca] rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-[#dc2626] mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="text-[13px] font-semibold text-[#991b1b]">Peringatan</p>
+                  <p className="text-[12px] text-[#7f1d1d] mt-1">
+                    Anda akan menghapus pesanan <strong>{orderToDelete.orderNumber}</strong> dari {orderToDelete.companyName}.
+                  </p>
+                  <p className="text-[12px] text-[#7f1d1d] mt-2">
+                    Total: {orderToDelete.items.reduce((sum, item) => sum + item.numberOfLogs, 0)} batang, {formatVolumeM3(orderToDelete.totalVolume * 1000)} m³, {formatCurrency(orderToDelete.totalValue)}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <p className="text-[12px] text-[#64748b]">
+              Tindakan ini tidak dapat dibatalkan. Semua data terkait pesanan ini akan dihapus permanen.
+            </p>
           </div>
         )}
       </Modal>
