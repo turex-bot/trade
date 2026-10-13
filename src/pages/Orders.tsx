@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Plus, Search, Eye, AlertTriangle, Calculator } from 'lucide-react';
-import { Order } from '../data/mockData';
+import { Plus, Search, Eye, AlertTriangle, Calculator, Trash2 } from 'lucide-react';
+import { Order, OrderItem } from '../data/mockData';
 import { PageHeader, Modal, Badge, FormField, Tabs } from '../components/ui';
 import { useData } from '../context/DataContext';
 import { useToast } from '../components/Toast';
@@ -88,7 +88,8 @@ export default function Orders() {
                     <th>Tanggal</th>
                     <th>Perusahaan</th>
                     <th>Depo</th>
-                    <th className="text-right">Jumlah Batang</th>
+                    <th className="text-right">Jumlah Item</th>
+                    <th className="text-right">Total Batang</th>
                     <th className="text-right">Volume</th>
                     <th className="text-right">Nilai</th>
                     <th className="text-center">Status</th>
@@ -104,6 +105,7 @@ export default function Orders() {
                       <td className="text-[12px] text-[#64748b]">{formatDate(order.orderDate)}</td>
                       <td className="text-[13px] text-[#0f172a] font-medium">{order.companyName}</td>
                       <td className="text-[12px] text-[#64748b]">{order.supplierName}</td>
+                      <td className="text-right text-[13px] font-medium text-[#0f172a]">{order.items.length} item</td>
                       <td className="text-right text-[13px] font-semibold text-[#0f172a]">
                         {order.items.reduce((sum, item) => sum + item.numberOfLogs, 0)} batang
                       </td>
@@ -169,7 +171,7 @@ export default function Orders() {
             </div>
 
             <div>
-              <p className="text-[12px] font-semibold text-[#0f172a] mb-2">Item Pesanan</p>
+              <p className="text-[12px] font-semibold text-[#0f172a] mb-2">Item Pesanan ({selectedOrder.items.length} item)</p>
               <div className="border border-[#e2e8f0] rounded-lg overflow-hidden">
                 <table className="data-table">
                   <thead>
@@ -234,7 +236,7 @@ export default function Orders() {
   );
 }
 
-// Create Order Modal Component
+// Create Order Modal Component dengan Multi-Item Support
 interface CreateOrderModalProps {
   open: boolean;
   onClose: () => void;
@@ -252,42 +254,94 @@ function CreateOrderModal({ open, onClose, companies, suppliers, woodSpecs, pric
   const [orderDate, setOrderDate] = useState(new Date().toISOString().split('T')[0]);
   const [notes, setNotes] = useState('');
   
-  // Item kayu state
-  const [selectedSpecId, setSelectedSpecId] = useState('');
-  const [numberOfLogs, setNumberOfLogs] = useState<number>(0);
+  // Multi-item state
+  const [orderItems, setOrderItems] = useState<Array<{
+    specId: string;
+    numberOfLogs: number;
+  }>>([]);
 
-  const selectedSpec = woodSpecs.find(s => s.id === selectedSpecId);
-  const selectedPrice = prices.find(p => p.woodSpecId === selectedSpecId && p.isActive);
   const selectedCompany = companies.find(c => c.id === companyId);
   const selectedSupplier = suppliers.find(s => s.id === supplierId);
 
-  // Auto-kalkulasi
-  const autoVolume = selectedSpec && numberOfLogs > 0 ? numberOfLogs * selectedSpec.volumePerLog : 0;
-  const autoSellValue = selectedPrice && numberOfLogs > 0 ? numberOfLogs * selectedPrice.sellPricePerLog : 0;
-  const autoBuyValue = selectedPrice && numberOfLogs > 0 ? numberOfLogs * selectedPrice.buyPricePerLog : 0;
+  // Calculate totals
+  const totals = orderItems.reduce((acc, item) => {
+    const spec = woodSpecs.find(s => s.id === item.specId);
+    const price = prices.find(p => p.woodSpecId === item.specId && p.isActive);
+    
+    if (spec && price && item.numberOfLogs > 0) {
+      const volume = item.numberOfLogs * spec.volumePerLog;
+      const sellValue = item.numberOfLogs * price.sellPricePerLog;
+      const buyValue = item.numberOfLogs * price.buyPricePerLog;
+      
+      return {
+        totalLogs: acc.totalLogs + item.numberOfLogs,
+        totalVolume: acc.totalVolume + volume,
+        totalSellValue: acc.totalSellValue + sellValue,
+        totalBuyValue: acc.totalBuyValue + buyValue,
+      };
+    }
+    return acc;
+  }, { totalLogs: 0, totalVolume: 0, totalSellValue: 0, totalBuyValue: 0 });
+
+  const handleAddItem = () => {
+    setOrderItems([...orderItems, { specId: '', numberOfLogs: 0 }]);
+  };
+
+  const handleRemoveItem = (index: number) => {
+    setOrderItems(orderItems.filter((_, i) => i !== index));
+  };
+
+  const handleItemChange = (index: number, field: 'specId' | 'numberOfLogs', value: string | number) => {
+    const newItems = [...orderItems];
+    if (field === 'specId') {
+      newItems[index].specId = value as string;
+    } else {
+      newItems[index].numberOfLogs = value as number;
+    }
+    setOrderItems(newItems);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!companyId || !supplierId || !selectedSpecId || numberOfLogs <= 0) {
-      toast.error('Lengkapi semua field', 'Pastikan semua data sudah diisi');
+    if (!companyId || !supplierId) {
+      toast.error('Lengkapi data perusahaan dan supplier');
       return;
     }
 
-    const orderItem = {
-      id: Math.random().toString(36).substr(2, 9),
-      woodSpecId: selectedSpecId,
-      woodSpecName: selectedSpec ? `${selectedSpec.woodType} ${selectedSpec.diameterRange} ${selectedSpec.grade}` : '',
-      numberOfLogs: numberOfLogs,
-      volumePerLog: selectedSpec?.volumePerLog || 0,
-      volume: autoVolume,
-      buyPricePerLog: selectedPrice?.buyPricePerLog || 0,
-      sellPricePerLog: selectedPrice?.sellPricePerLog || 0,
-      buyPrice: selectedPrice?.buyPrice || 0,
-      sellPrice: selectedPrice?.sellPrice || 0,
-      totalBuyValue: autoBuyValue,
-      totalSellValue: autoSellValue,
-    };
+    if (orderItems.length === 0) {
+      toast.error('Tambahkan minimal 1 item kayu');
+      return;
+    }
+
+    // Validate all items
+    const validItems = orderItems.filter(item => item.specId && item.numberOfLogs > 0);
+    if (validItems.length === 0) {
+      toast.error('Lengkapi data item kayu');
+      return;
+    }
+
+    // Build order items
+    const items: OrderItem[] = validItems.map((item, idx) => {
+      const spec = woodSpecs.find(s => s.id === item.specId)!;
+      const price = prices.find(p => p.woodSpecId === item.specId && p.isActive)!;
+      const volume = item.numberOfLogs * spec.volumePerLog;
+      
+      return {
+        id: Math.random().toString(36).substr(2, 9),
+        woodSpecId: item.specId,
+        woodSpecName: `${spec.woodType} ${spec.diameterRange} ${spec.grade}`,
+        numberOfLogs: item.numberOfLogs,
+        volumePerLog: spec.volumePerLog,
+        volume: volume,
+        buyPricePerLog: price.buyPricePerLog,
+        sellPricePerLog: price.sellPricePerLog,
+        buyPrice: price.buyPrice,
+        sellPrice: price.sellPrice,
+        totalBuyValue: item.numberOfLogs * price.buyPricePerLog,
+        totalSellValue: item.numberOfLogs * price.sellPricePerLog,
+      };
+    });
 
     addOrder({
       orderDate,
@@ -296,20 +350,19 @@ function CreateOrderModal({ open, onClose, companies, suppliers, woodSpecs, pric
       supplierId,
       supplierName: selectedSupplier?.name || '',
       status: 'draft',
-      items: [orderItem],
-      totalVolume: autoVolume,
-      totalValue: autoSellValue,
+      items,
+      totalVolume: totals.totalVolume,
+      totalValue: totals.totalSellValue,
       notes,
     });
 
-    toast.success('Pesanan berhasil dibuat', 'Pesanan baru telah ditambahkan');
+    toast.success('Pesanan berhasil dibuat', `${validItems.length} item kayu telah ditambahkan`);
     
     // Reset
     setCompanyId('');
     setSupplierId('');
     setNotes('');
-    setSelectedSpecId('');
-    setNumberOfLogs(0);
+    setOrderItems([]);
     onClose();
   };
 
@@ -318,7 +371,7 @@ function CreateOrderModal({ open, onClose, companies, suppliers, woodSpecs, pric
       open={open}
       onClose={onClose}
       title="Buat Pesanan Baru"
-      subtitle="Input jumlah batang, kubikasi dihitung otomatis"
+      subtitle="Input beberapa item kayu dalam 1 pesanan"
       size="lg"
       footer={
         <>
@@ -326,7 +379,7 @@ function CreateOrderModal({ open, onClose, companies, suppliers, woodSpecs, pric
           <button 
             onClick={handleSubmit} 
             className="btn btn-primary"
-            disabled={!companyId || !supplierId || !selectedSpecId || numberOfLogs <= 0}
+            disabled={!companyId || !supplierId || orderItems.length === 0}
           >
             Buat Pesanan
           </button>
@@ -373,115 +426,149 @@ function CreateOrderModal({ open, onClose, companies, suppliers, woodSpecs, pric
           />
         </FormField>
 
-        {/* Item Kayu dengan Logika Batang → Kubikasi */}
+        {/* Multi-Item Kayu */}
         <div>
-          <div className="flex items-center gap-2 mb-3">
-            <Calculator className="w-4 h-4 text-[#166534]" />
-            <p className="text-[13px] font-semibold text-[#0f172a]">Item Kayu</p>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Calculator className="w-4 h-4 text-[#166534]" />
+              <p className="text-[13px] font-semibold text-[#0f172a]">Item Kayu ({orderItems.length})</p>
+            </div>
+            <button
+              type="button"
+              onClick={handleAddItem}
+              className="btn btn-secondary text-[12px]"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              Tambah Item
+            </button>
           </div>
           
-          <div className="border border-[#e2e8f0] rounded-lg p-4 space-y-4 bg-[#f8fafc]">
-            <FormField label="Spesifikasi Kayu" required hint="Pilih jenis dan diameter kayu">
-              <select 
-                className="input-field"
-                value={selectedSpecId}
-                onChange={(e) => {
-                  setSelectedSpecId(e.target.value);
-                  setNumberOfLogs(0);
-                }}
-                required
-              >
-                <option value="">-- Pilih Spesifikasi --</option>
-                {woodSpecs.map(spec => (
-                  <option key={spec.id} value={spec.id}>
-                    {spec.woodType} {spec.diameterRange} {spec.grade}
-                  </option>
-                ))}
-              </select>
-            </FormField>
-
-            {selectedSpec && (
-              <div className="bg-white rounded-lg p-3 border border-[#e2e8f0]">
-                <div className="grid grid-cols-3 gap-3 text-[12px]">
-                  <div>
-                    <p className="text-[#64748b]">Diameter</p>
-                    <p className="font-semibold text-[#0f172a]">{selectedSpec.diameterRange}</p>
-                  </div>
-                  <div>
-                    <p className="text-[#64748b]">Panjang Standar</p>
-                    <p className="font-semibold text-[#0f172a]">{selectedSpec.standardLength} meter</p>
-                  </div>
-                  <div>
-                    <p className="text-[#64748b]">Volume/Batang</p>
-                    <p className="font-semibold text-[#166534]">{selectedSpec.volumePerLog.toFixed(3)} m³</p>
-                  </div>
-                </div>
+          <div className="space-y-3">
+            {orderItems.length === 0 ? (
+              <div className="border-2 border-dashed border-[#e2e8f0] rounded-lg p-6 text-center bg-[#f8fafc]">
+                <p className="text-[13px] text-[#64748b] mb-2">Belum ada item kayu</p>
+                <button
+                  type="button"
+                  onClick={handleAddItem}
+                  className="btn btn-primary text-[12px]"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  Tambah Item Pertama
+                </button>
               </div>
-            )}
+            ) : (
+              orderItems.map((item, index) => {
+                const spec = woodSpecs.find(s => s.id === item.specId);
+                const price = prices.find(p => p.woodSpecId === item.specId && p.isActive);
+                const volume = spec && item.numberOfLogs > 0 ? item.numberOfLogs * spec.volumePerLog : 0;
+                const sellValue = price && item.numberOfLogs > 0 ? item.numberOfLogs * price.sellPricePerLog : 0;
 
-            <FormField label="Jumlah Batang" required hint="Masukkan jumlah batang, kubikasi akan dihitung otomatis">
-              <div className="relative">
-                <input 
-                  type="number" 
-                  className="input-field pr-16"
-                  placeholder="0"
-                  min="0"
-                  value={numberOfLogs || ''}
-                  onChange={(e) => setNumberOfLogs(parseInt(e.target.value) || 0)}
-                  required
-                />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[12px] text-[#64748b] font-medium">batang</span>
-              </div>
-            </FormField>
-
-            {selectedSpec && numberOfLogs > 0 && (
-              <div className="bg-[#f0fdf4] rounded-lg p-4 border border-[#dcfce7] space-y-3">
-                <p className="text-[12px] font-semibold text-[#166534] flex items-center gap-1.5">
-                  <Calculator className="w-3.5 h-3.5" />
-                  Kalkulasi Otomatis
-                </p>
-                
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-white rounded-lg p-3 border border-[#dcfce7]">
-                    <p className="text-[11px] text-[#166534]">Total Kubikasi</p>
-                    <p className="text-[16px] font-bold text-[#166534]">{autoVolume.toFixed(2)} m³</p>
-                    <p className="text-[10px] text-[#16a34a] mt-0.5">
-                      {numberOfLogs} batang × {selectedSpec.volumePerLog.toFixed(3)} m³
-                    </p>
-                  </div>
-                  
-                  {selectedPrice && (
-                    <div className="bg-white rounded-lg p-3 border border-[#dcfce7]">
-                      <p className="text-[11px] text-[#166534]">Harga Jual/Batang</p>
-                      <p className="text-[16px] font-bold text-[#166534]">{formatCurrency(selectedPrice.sellPricePerLog)}</p>
-                      <p className="text-[10px] text-[#16a34a] mt-0.5">
-                        {formatCurrency(selectedPrice.sellPrice)}/m³ × {selectedSpec.volumePerLog.toFixed(3)} m³
-                      </p>
+                return (
+                  <div key={index} className="border border-[#e2e8f0] rounded-lg p-4 bg-[#f8fafc]">
+                    <div className="flex items-start justify-between mb-3">
+                      <p className="text-[12px] font-semibold text-[#0f172a]">Item #{index + 1}</p>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveItem(index)}
+                        className="p-1 rounded hover:bg-[#fef2f2] text-[#94a3b8] hover:text-[#dc2626]"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
-                  )}
-                </div>
 
-                {selectedPrice && (
-                  <div className="pt-3 border-t border-[#dcfce7]">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-[11px] text-[#166534]">Total Nilai Beli (ke Depo)</p>
-                        <p className="text-[14px] font-semibold text-[#334155]">{formatCurrency(autoBuyValue)}</p>
+                    <div className="grid grid-cols-2 gap-3 mb-3">
+                      <FormField label="Spesifikasi Kayu" required>
+                        <select 
+                          className="input-field"
+                          value={item.specId}
+                          onChange={(e) => handleItemChange(index, 'specId', e.target.value)}
+                          required
+                        >
+                          <option value="">-- Pilih Spesifikasi --</option>
+                          {woodSpecs.map(spec => (
+                            <option key={spec.id} value={spec.id}>
+                              {spec.woodType} {spec.diameterRange} {spec.grade}
+                            </option>
+                          ))}
+                        </select>
+                      </FormField>
+
+                      <FormField label="Jumlah Batang" required>
+                        <div className="relative">
+                          <input 
+                            type="number" 
+                            className="input-field pr-16"
+                            placeholder="0"
+                            min="0"
+                            value={item.numberOfLogs || ''}
+                            onChange={(e) => handleItemChange(index, 'numberOfLogs', parseInt(e.target.value) || 0)}
+                            required
+                          />
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[12px] text-[#64748b] font-medium">batang</span>
+                        </div>
+                      </FormField>
+                    </div>
+
+                    {/* Auto-kalkulasi per item */}
+                    {spec && item.numberOfLogs > 0 && (
+                      <div className="bg-white rounded-lg p-3 border border-[#e2e8f0]">
+                        <div className="grid grid-cols-3 gap-3 text-[11px]">
+                          <div>
+                            <p className="text-[#64748b]">Volume/Batang</p>
+                            <p className="font-semibold text-[#0f172a]">{spec.volumePerLog.toFixed(3)} m³</p>
+                          </div>
+                          <div>
+                            <p className="text-[#64748b]">Total Kubikasi</p>
+                            <p className="font-bold text-[#166534]">{volume.toFixed(2)} m³</p>
+                          </div>
+                          {price && (
+                            <div>
+                              <p className="text-[#64748b]">Total Nilai Jual</p>
+                              <p className="font-bold text-[#166534]">{formatCurrency(sellValue)}</p>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-[11px] text-[#166534]">Total Nilai Jual (ke Perusahaan)</p>
-                        <p className="text-[18px] font-bold text-[#166534]">{formatCurrency(autoSellValue)}</p>
-                      </div>
-                    </div>
-                    <div className="mt-2 text-[11px] text-[#16a34a] text-center">
-                      Estimasi Profit: <strong>{formatCurrency(autoSellValue - autoBuyValue)}</strong>
-                    </div>
+                    )}
                   </div>
-                )}
-              </div>
+                );
+              })
             )}
           </div>
         </div>
+
+        {/* Grand Total */}
+        {orderItems.length > 0 && totals.totalVolume > 0 && (
+          <div className="bg-[#f0fdf4] rounded-lg p-4 border border-[#dcfce7]">
+            <p className="text-[12px] font-semibold text-[#166534] mb-3 flex items-center gap-1.5">
+              <Calculator className="w-3.5 h-3.5" />
+              Total Keseluruhan
+            </p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="bg-white rounded-lg p-3 border border-[#dcfce7]">
+                <p className="text-[11px] text-[#166534]">Total Item</p>
+                <p className="text-[16px] font-bold text-[#166534]">{orderItems.filter(i => i.specId && i.numberOfLogs > 0).length}</p>
+              </div>
+              <div className="bg-white rounded-lg p-3 border border-[#dcfce7]">
+                <p className="text-[11px] text-[#166534]">Total Batang</p>
+                <p className="text-[16px] font-bold text-[#166534]">{totals.totalLogs} batang</p>
+              </div>
+              <div className="bg-white rounded-lg p-3 border border-[#dcfce7]">
+                <p className="text-[11px] text-[#166534]">Total Kubikasi</p>
+                <p className="text-[16px] font-bold text-[#166534]">{totals.totalVolume.toFixed(2)} m³</p>
+              </div>
+              <div className="bg-white rounded-lg p-3 border border-[#dcfce7]">
+                <p className="text-[11px] text-[#166534]">Total Nilai Jual</p>
+                <p className="text-[16px] font-bold text-[#166534]">{formatCurrency(totals.totalSellValue)}</p>
+              </div>
+            </div>
+            <div className="mt-3 pt-3 border-t border-[#dcfce7] text-center">
+              <p className="text-[12px] text-[#16a34a]">
+                Estimasi Profit: <strong className="text-[14px]">{formatCurrency(totals.totalSellValue - totals.totalBuyValue)}</strong>
+              </p>
+            </div>
+          </div>
+        )}
 
         {selectedCompany && (
           <div className="bg-[#fefce8] border border-[#fef08a] rounded-lg p-3 flex items-start gap-2">
