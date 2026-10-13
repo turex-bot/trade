@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Search, Eye, AlertTriangle, Calculator, Trash2 } from 'lucide-react';
+import { Plus, Search, Eye, AlertTriangle, Calculator, Trash2, X } from 'lucide-react';
 import { Order, OrderItem } from '../data/mockData';
 import { PageHeader, Modal, Badge, FormField, Tabs } from '../components/ui';
 import { useData } from '../context/DataContext';
@@ -295,7 +295,7 @@ export default function Orders() {
   );
 }
 
-// Create Order Modal Component dengan Multi-Item Support
+// Create Order Modal Component - NEW FLOW: Input Diameter → Auto Range → Input Quantity
 interface CreateOrderModalProps {
   open: boolean;
   onClose: () => void;
@@ -313,33 +313,36 @@ function CreateOrderModal({ open, onClose, companies, suppliers, woodSpecs, pric
   const [orderDate, setOrderDate] = useState(new Date().toISOString().split('T')[0]);
   const [notes, setNotes] = useState('');
   
-  // Multi-item state
+  // Multi-item state - NEW FLOW
   const [orderItems, setOrderItems] = useState<Array<{
-    specId: string;
-    numberOfLogs: number;
+    woodType: string;
+    grade: string;
+    diameters: number[]; // diameter aktual per batang
+    lengthCm: number;
+    priceId: string;
   }>>([]);
+
+  const [currentDiameter, setCurrentDiameter] = useState<number | ''>('');
 
   const selectedCompany = companies.find(c => c.id === companyId);
   const selectedSupplier = suppliers.find(s => s.id === supplierId);
 
-  // Calculate totals using average diameter for estimation
+  // Calculate totals
   const totals = orderItems.reduce((acc, item) => {
-    const spec = woodSpecs.find(s => s.id === item.specId);
-    const price = prices.find(p => p.woodSpecId === item.specId && p.isActive);
-    
-    if (spec && price && item.numberOfLogs > 0) {
-      // Use average diameter for estimation in the form
-      const avgDiameter = (spec.diameterMin + spec.diameterMax) / 2;
-      // PENTING: standardLength sudah dalam cm, tidak perlu dikali 100 lagi!
-      const volumePerLogM3 = calculateLogVolumeM3(avgDiameter, spec.standardLength);
-      const volume = item.numberOfLogs * volumePerLogM3;
-      
-      const sellValue = item.numberOfLogs * price.sellPricePerLog;
-      const buyValue = item.numberOfLogs * price.buyPricePerLog;
-      
+    if (item.diameters.length > 0 && item.lengthCm > 0) {
+      // Calculate volume based on actual diameters
+      const volumeM3 = item.diameters.reduce((total, diameter) => {
+        return total + calculateLogVolumeM3(diameter, item.lengthCm);
+      }, 0);
+
+      const price = prices.find(p => p.id === item.priceId && p.isActive);
+      const avgVolumePerLog = volumeM3 / item.diameters.length;
+      const sellValue = price ? item.diameters.length * (price.sellPrice * avgVolumePerLog) : 0;
+      const buyValue = price ? item.diameters.length * (price.buyPrice * avgVolumePerLog) : 0;
+
       return {
-        totalLogs: acc.totalLogs + item.numberOfLogs,
-        totalVolume: acc.totalVolume + volume,
+        totalLogs: acc.totalLogs + item.diameters.length,
+        totalVolume: acc.totalVolume + volumeM3,
         totalSellValue: acc.totalSellValue + sellValue,
         totalBuyValue: acc.totalBuyValue + buyValue,
       };
@@ -348,21 +351,46 @@ function CreateOrderModal({ open, onClose, companies, suppliers, woodSpecs, pric
   }, { totalLogs: 0, totalVolume: 0, totalSellValue: 0, totalBuyValue: 0 });
 
   const handleAddItem = () => {
-    setOrderItems([...orderItems, { specId: '', numberOfLogs: 0 }]);
+    setOrderItems([...orderItems, { 
+      woodType: '', 
+      grade: '', 
+      diameters: [], 
+      lengthCm: 400, 
+      priceId: '' 
+    }]);
   };
 
   const handleRemoveItem = (index: number) => {
     setOrderItems(orderItems.filter((_, i) => i !== index));
   };
 
-  const handleItemChange = (index: number, field: 'specId' | 'numberOfLogs', value: string | number) => {
+  const handleItemChange = (index: number, field: string, value: any) => {
     const newItems = [...orderItems];
-    if (field === 'specId') {
-      newItems[index].specId = value as string;
-    } else {
-      newItems[index].numberOfLogs = value as number;
-    }
+    (newItems[index] as any)[field] = value;
     setOrderItems(newItems);
+  };
+
+  const handleAddDiameter = (itemIndex: number) => {
+    if (currentDiameter && currentDiameter > 0) {
+      const newItems = [...orderItems];
+      newItems[itemIndex].diameters.push(currentDiameter);
+      setOrderItems(newItems);
+      setCurrentDiameter('');
+    }
+  };
+
+  const handleRemoveDiameter = (itemIndex: number, diameterIndex: number) => {
+    const newItems = [...orderItems];
+    newItems[itemIndex].diameters.splice(diameterIndex, 1);
+    setOrderItems(newItems);
+  };
+
+  // Auto-detect range from diameters
+  const getAutoRange = (diameters: number[]): string => {
+    if (diameters.length === 0) return '';
+    const min = Math.min(...diameters);
+    const max = Math.max(...diameters);
+    return `${min}-${max} cm`;
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -379,47 +407,42 @@ function CreateOrderModal({ open, onClose, companies, suppliers, woodSpecs, pric
     }
 
     // Validate all items
-    const validItems = orderItems.filter(item => item.specId && item.numberOfLogs > 0);
+    const validItems = orderItems.filter(item => 
+      item.woodType && item.grade && item.diameters.length > 0 && item.lengthCm > 0
+    );
+    
     if (validItems.length === 0) {
       toast.error('Lengkapi data item kayu');
       return;
     }
 
-    // Build order items with actual log diameters
+    // Build order items
     const items: OrderItem[] = validItems.map((item, idx) => {
-      const spec = woodSpecs.find(s => s.id === item.specId)!;
-      const price = prices.find(p => p.woodSpecId === item.specId && p.isActive)!;
-      
-      // Generate random diameters within the spec's range for each log
-      const logDiameters: number[] = [];
-      for (let i = 0; i < item.numberOfLogs; i++) {
-        const randomDiameter = Math.floor(Math.random() * (spec.diameterMax - spec.diameterMin + 1)) + spec.diameterMin;
-        logDiameters.push(randomDiameter);
-      }
+      const price = prices.find(p => p.id === item.priceId && p.isActive);
       
       // Calculate volume per log based on actual diameters
-      // PENTING: standardLength sudah dalam cm, tidak perlu dikali 100 lagi!
-      const volumeM3 = logDiameters.reduce((total, diameter) => {
-        return total + calculateLogVolumeM3(diameter, spec.standardLength);
+      const volumeM3 = item.diameters.reduce((total, diameter) => {
+        return total + calculateLogVolumeM3(diameter, item.lengthCm);
       }, 0);
       
       const volumeDm3 = volumeM3 * 1000; // convert to dm³
+      const avgVolumePerLog = volumeM3 / item.diameters.length;
       
       return {
         id: Math.random().toString(36).substr(2, 9),
-        woodSpecId: item.specId,
-        woodSpecName: `${spec.woodType} ${spec.diameterRange} ${spec.grade}`,
-        numberOfLogs: item.numberOfLogs,
-        logDiameters: logDiameters,
-        logLength: spec.standardLength,
+        woodSpecId: item.priceId || '',
+        woodSpecName: `${item.woodType} ${getAutoRange(item.diameters)} ${item.grade}`,
+        numberOfLogs: item.diameters.length,
+        logDiameters: item.diameters,
+        logLength: item.lengthCm,
         volumeDm3: Math.round(volumeDm3 * 100) / 100,
         volume: Math.round(volumeM3 * 1000) / 1000,
-        buyPricePerLog: price.buyPricePerLog,
-        sellPricePerLog: price.sellPricePerLog,
-        buyPrice: price.buyPrice,
-        sellPrice: price.sellPrice,
-        totalBuyValue: item.numberOfLogs * price.buyPricePerLog,
-        totalSellValue: item.numberOfLogs * price.sellPricePerLog,
+        buyPricePerLog: price ? price.buyPrice * avgVolumePerLog : 0,
+        sellPricePerLog: price ? price.sellPrice * avgVolumePerLog : 0,
+        buyPrice: price?.buyPrice || 0,
+        sellPrice: price?.sellPrice || 0,
+        totalBuyValue: price ? item.diameters.length * (price.buyPrice * avgVolumePerLog) : 0,
+        totalSellValue: price ? item.diameters.length * (price.sellPrice * avgVolumePerLog) : 0,
       };
     });
 
@@ -451,7 +474,7 @@ function CreateOrderModal({ open, onClose, companies, suppliers, woodSpecs, pric
       open={open}
       onClose={onClose}
       title="Buat Pesanan Baru"
-      subtitle="Input beberapa item kayu dalam 1 pesanan"
+      subtitle="Input diameter per batang, range otomatis terdeteksi"
       size="lg"
       footer={
         <>
@@ -467,46 +490,46 @@ function CreateOrderModal({ open, onClose, companies, suppliers, woodSpecs, pric
       }
     >
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
-          <FormField label="Perusahaan Plywood" required>
+        {/* Header Info - Sejajar */}
+        <div className="grid grid-cols-3 gap-3">
+          <FormField label="Perusahaan" required>
             <select 
               value={companyId}
               onChange={(e) => setCompanyId(e.target.value)}
               className="input-field"
               required
             >
-              <option value="">Pilih Perusahaan</option>
+              <option value="">Pilih</option>
               {companies.filter(c => c.status === 'aktif').map(c => (
                 <option key={c.id} value={c.id}>{c.name}</option>
               ))}
             </select>
           </FormField>
-          <FormField label="Depo / Supplier" required>
+          <FormField label="Supplier" required>
             <select 
               value={supplierId}
               onChange={(e) => setSupplierId(e.target.value)}
               className="input-field"
               required
             >
-              <option value="">Pilih Depo</option>
+              <option value="">Pilih</option>
               {suppliers.filter(s => s.status === 'aktif').map(s => (
                 <option key={s.id} value={s.id}>{s.name}</option>
               ))}
             </select>
           </FormField>
+          <FormField label="Tanggal" required>
+            <input 
+              type="date" 
+              value={orderDate}
+              onChange={(e) => setOrderDate(e.target.value)}
+              className="input-field" 
+              required
+            />
+          </FormField>
         </div>
-        
-        <FormField label="Tanggal Order" required>
-          <input 
-            type="date" 
-            value={orderDate}
-            onChange={(e) => setOrderDate(e.target.value)}
-            className="input-field" 
-            required
-          />
-        </FormField>
 
-        {/* Multi-Item Kayu */}
+        {/* Items Section */}
         <div>
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
@@ -538,10 +561,16 @@ function CreateOrderModal({ open, onClose, companies, suppliers, woodSpecs, pric
               </div>
             ) : (
               orderItems.map((item, index) => {
-                const spec = woodSpecs.find(s => s.id === item.specId);
-                const price = prices.find(p => p.woodSpecId === item.specId && p.isActive);
-                const volume = spec && item.numberOfLogs > 0 ? item.numberOfLogs * spec.volumePerLog : 0;
-                const sellValue = price && item.numberOfLogs > 0 ? item.numberOfLogs * price.sellPricePerLog : 0;
+                const autoRange = getAutoRange(item.diameters);
+                const price = prices.find(p => p.id === item.priceId && p.isActive);
+                
+                // Calculate volume for this item
+                const volumeM3 = item.diameters.reduce((total, diameter) => {
+                  return total + calculateLogVolumeM3(diameter, item.lengthCm);
+                }, 0);
+                
+                const avgVolumePerLog = item.diameters.length > 0 ? volumeM3 / item.diameters.length : 0;
+                const sellValue = price ? item.diameters.length * (price.sellPrice * avgVolumePerLog) : 0;
 
                 return (
                   <div key={index} className="border border-[#e2e8f0] rounded-lg p-4 bg-[#f8fafc]">
@@ -556,60 +585,136 @@ function CreateOrderModal({ open, onClose, companies, suppliers, woodSpecs, pric
                       </button>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3 mb-3">
-                      <FormField label="Spesifikasi Kayu" required>
+                    {/* Row 1: Jenis, Grade, Panjang - Sejajar */}
+                    <div className="grid grid-cols-3 gap-3 mb-3">
+                      <FormField label="Jenis Kayu" required>
+                        <input 
+                          type="text"
+                          className="input-field"
+                          value={item.woodType}
+                          onChange={(e) => handleItemChange(index, 'woodType', e.target.value)}
+                          placeholder="Meranti, Alba, dll"
+                          required
+                        />
+                      </FormField>
+                      <FormField label="Grade" required>
                         <select 
                           className="input-field"
-                          value={item.specId}
-                          onChange={(e) => handleItemChange(index, 'specId', e.target.value)}
+                          value={item.grade}
+                          onChange={(e) => handleItemChange(index, 'grade', e.target.value)}
                           required
                         >
-                          <option value="">-- Pilih Spesifikasi --</option>
-                          {woodSpecs.map(spec => (
-                            <option key={spec.id} value={spec.id}>
-                              {spec.woodType} {spec.diameterRange} {spec.grade}
+                          <option value="">Pilih</option>
+                          <option value="Premium">Premium</option>
+                          <option value="Reguler">Reguler</option>
+                        </select>
+                      </FormField>
+                      <FormField label="Panjang (cm)" required>
+                        <input 
+                          type="number"
+                          className="input-field"
+                          value={item.lengthCm}
+                          onChange={(e) => handleItemChange(index, 'lengthCm', parseInt(e.target.value) || 0)}
+                          placeholder="130"
+                          required
+                        />
+                      </FormField>
+                    </div>
+
+                    {/* Row 2: Input Diameter - Sejajar */}
+                    <div className="mb-3">
+                      <label className="block text-[12px] font-medium text-[#334155] mb-1.5">
+                        Diameter Batang (cm) <span className="text-[#dc2626]">*</span>
+                      </label>
+                      <div className="flex gap-2">
+                        <input 
+                          type="number"
+                          className="input-field flex-1"
+                          value={currentDiameter}
+                          onChange={(e) => setCurrentDiameter(e.target.value === '' ? '' : parseFloat(e.target.value))}
+                          placeholder="Masukkan diameter (misal: 21)"
+                          step="0.1"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleAddDiameter(index)}
+                          className="btn btn-primary"
+                          disabled={!currentDiameter || currentDiameter <= 0}
+                        >
+                          <Plus className="w-4 h-4" />
+                          Tambah
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Diameter List */}
+                    {item.diameters.length > 0 && (
+                      <div className="mb-3">
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="text-[11px] text-[#64748b]">
+                            {item.diameters.length} batang diinput
+                          </p>
+                          <p className="text-[11px] font-semibold text-[#166534]">
+                            Range: {autoRange}
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5 max-h-[100px] overflow-y-auto">
+                          {item.diameters.map((diameter, dIdx) => (
+                            <div 
+                              key={dIdx}
+                              className="inline-flex items-center gap-1 px-2 py-1 bg-white border border-[#e2e8f0] rounded text-[11px]"
+                            >
+                              <span className="font-medium text-[#0f172a]">{diameter} cm</span>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveDiameter(index, dIdx)}
+                                className="text-[#94a3b8] hover:text-[#dc2626]"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Row 3: Harga & Kalkulasi - Sejajar */}
+                    <div className="grid grid-cols-2 gap-3 mb-3">
+                      <FormField label="Harga (per m³)" required>
+                        <select 
+                          className="input-field"
+                          value={item.priceId}
+                          onChange={(e) => handleItemChange(index, 'priceId', e.target.value)}
+                          required
+                        >
+                          <option value="">Pilih Harga</option>
+                          {prices.filter(p => p.isActive).map(p => (
+                            <option key={p.id} value={p.id}>
+                              {p.woodSpecName} - Beli: {formatCurrency(p.buyPrice)}, Jual: {formatCurrency(p.sellPrice)}
                             </option>
                           ))}
                         </select>
                       </FormField>
-
-                      <FormField label="Jumlah Batang" required>
-                        <div className="relative">
-                          <input 
-                            type="number" 
-                            className="input-field pr-16"
-                            placeholder="0"
-                            min="0"
-                            value={item.numberOfLogs || ''}
-                            onChange={(e) => handleItemChange(index, 'numberOfLogs', parseInt(e.target.value) || 0)}
-                            required
-                          />
-                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[12px] text-[#64748b] font-medium">batang</span>
-                        </div>
-                      </FormField>
-                    </div>
-
-                    {/* Auto-kalkulasi per item */}
-                    {spec && item.numberOfLogs > 0 && (
-                      <div className="bg-white rounded-lg p-3 border border-[#e2e8f0]">
-                        <div className="grid grid-cols-3 gap-3 text-[11px]">
-                          <div>
-                            <p className="text-[#64748b]">Volume/Batang</p>
-                            <p className="font-semibold text-[#0f172a]">{spec.volumePerLog.toFixed(3)} m³</p>
-                          </div>
-                          <div>
-                            <p className="text-[#64748b]">Total Kubikasi</p>
-                            <p className="font-bold text-[#166534]">{volume.toFixed(2)} m³</p>
-                          </div>
-                          {price && (
-                            <div>
-                              <p className="text-[#64748b]">Total Nilai Jual</p>
-                              <p className="font-bold text-[#166534]">{formatCurrency(sellValue)}</p>
+                      {item.diameters.length > 0 && price && (
+                        <div>
+                          <label className="block text-[12px] font-medium text-[#334155] mb-1.5">
+                            Kalkulasi Otomatis
+                          </label>
+                          <div className="bg-white rounded-lg p-2 border border-[#e2e8f0] text-[11px]">
+                            <div className="grid grid-cols-2 gap-2">
+                              <div>
+                                <p className="text-[#64748b]">Total Volume</p>
+                                <p className="font-bold text-[#166534]">{volumeM3.toFixed(3)} m³</p>
+                              </div>
+                              <div>
+                                <p className="text-[#64748b]">Total Nilai</p>
+                                <p className="font-bold text-[#166534]">{formatCurrency(sellValue)}</p>
+                              </div>
                             </div>
-                          )}
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
                 );
               })
@@ -624,10 +729,10 @@ function CreateOrderModal({ open, onClose, companies, suppliers, woodSpecs, pric
               <Calculator className="w-3.5 h-3.5" />
               Total Keseluruhan
             </p>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-4 gap-3">
               <div className="bg-white rounded-lg p-3 border border-[#dcfce7]">
                 <p className="text-[11px] text-[#166534]">Total Item</p>
-                <p className="text-[16px] font-bold text-[#166534]">{orderItems.filter(i => i.specId && i.numberOfLogs > 0).length}</p>
+                <p className="text-[16px] font-bold text-[#166534]">{orderItems.filter(i => i.diameters.length > 0).length}</p>
               </div>
               <div className="bg-white rounded-lg p-3 border border-[#dcfce7]">
                 <p className="text-[11px] text-[#166534]">Total Batang</p>
@@ -635,10 +740,10 @@ function CreateOrderModal({ open, onClose, companies, suppliers, woodSpecs, pric
               </div>
               <div className="bg-white rounded-lg p-3 border border-[#dcfce7]">
                 <p className="text-[11px] text-[#166534]">Total Kubikasi</p>
-                <p className="text-[16px] font-bold text-[#166534]">{totals.totalVolume.toFixed(2)} m³</p>
+                <p className="text-[16px] font-bold text-[#166534]">{totals.totalVolume.toFixed(3)} m³</p>
               </div>
               <div className="bg-white rounded-lg p-3 border border-[#dcfce7]">
-                <p className="text-[11px] text-[#166534]">Total Nilai Jual</p>
+                <p className="text-[11px] text-[#166534]">Total Nilai</p>
                 <p className="text-[16px] font-bold text-[#166534]">{formatCurrency(totals.totalSellValue)}</p>
               </div>
             </div>
