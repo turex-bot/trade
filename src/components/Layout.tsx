@@ -91,7 +91,7 @@ export default function Layout({ children }: LayoutProps) {
             </div>
             {!sidebarCollapsed && (
               <div className="animate-fade-in">
-                <h1 className="font-bold text-[#0f172a] text-[15px] leading-tight tracking-tight">TimberFlow</h1>
+                <h1 className="font-bold text-[#334155] text-[15px] leading-tight tracking-tight">TimberFlow</h1>
                 <p className="text-[10px] text-[#94a3b8] leading-tight font-medium">Plywood Trading</p>
               </div>
             )}
@@ -161,7 +161,7 @@ export default function Layout({ children }: LayoutProps) {
                 <span className="text-white text-xs font-bold">A</span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[13px] font-semibold text-[#0f172a] truncate">Admin User</p>
+                <p className="text-[13px] font-semibold text-[#334155] truncate">Admin User</p>
                 <p className="text-[11px] text-[#94a3b8] truncate">Administrator</p>
               </div>
               <button className="p-1.5 rounded-lg hover:bg-[#f1f5f9] text-[#94a3b8]">
@@ -196,7 +196,7 @@ export default function Layout({ children }: LayoutProps) {
                 <span key={crumb.path} className="flex items-center gap-1.5">
                   {i > 0 && <ChevronRight className="w-3 h-3" />}
                   {i === getBreadcrumbs().length - 1 ? (
-                    <span className="text-[#0f172a] font-medium">{crumb.label}</span>
+                    <span className="text-[#334155] font-medium">{crumb.label}</span>
                   ) : (
                     <Link to={crumb.path}>{crumb.label}</Link>
                   )}

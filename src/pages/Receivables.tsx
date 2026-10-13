@@ -176,22 +176,7 @@ export default function Receivables() {
         </div>
       </div>
 
-      {/* Info Box - Penjelasan Logika */}
-      <div className="bg-[#eff6ff] border border-[#bfdbfe] rounded-lg p-4 mb-4">
-        <div className="flex items-start gap-3">
-          <div className="w-8 h-8 rounded-lg bg-[#2563eb] flex items-center justify-center flex-shrink-0">
-            <span className="text-white text-sm">💡</span>
-          </div>
-          <div className="flex-1">
-            <p className="text-[13px] font-semibold text-[#1e40af] mb-1">Logika Pembayaran dari Perusahaan</p>
-            <p className="text-[12px] text-[#1e3a8a]">
-              Perusahaan membayar <strong>TOTAL HARGA PESANAN</strong> (harga pokok + margin sudah termasuk)
-              <br />
-              <span className="text-[11px]">Contoh: Total Rp60.000.000 (sudah termasuk margin Rp750.000)</span>
-            </p>
-          </div>
-        </div>
-      </div>
+
 
       {/* Filters */}
       <div className="card mb-4">
@@ -349,11 +334,7 @@ export default function Receivables() {
                 <p className="text-[12px] font-semibold text-[#166534]">Total Diterima dari Perusahaan</p>
                 <p className="text-[18px] font-bold text-[#166534]">{formatCurrency(calculateTotalReceivable(selectedOrder))}</p>
               </div>
-              <div className="bg-[#fef3c7] rounded p-2 mt-2">
-                <p className="text-[11px] text-[#92400e] text-center">
-                  💡 Perusahaan membayar total harga, profit Anda sudah termasuk
-                </p>
-              </div>
+
             </div>
 
             {selectedOrder.status !== 'paid' && (
@@ -394,11 +375,7 @@ export default function Receivables() {
                 <span className="text-[13px] font-semibold text-[#166534]">Diterima dari Perusahaan:</span>
                 <span className="text-[20px] font-bold text-[#166534]">{formatCurrency(calculateTotalReceivable(selectedOrder))}</span>
               </div>
-              <div className="bg-[#fef3c7] rounded p-2 mt-2">
-                <p className="text-[11px] text-[#92400e] text-center">
-                  💡 Perusahaan membayar total harga, profit Anda sudah termasuk
-                </p>
-              </div>
+
             </div>
 
             <FormField label="Tanggal Pembayaran" required>

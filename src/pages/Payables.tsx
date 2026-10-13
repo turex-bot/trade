@@ -200,22 +200,7 @@ export default function Payables() {
         </div>
       </div>
 
-      {/* Info Box - Penjelasan Logika */}
-      <div className="bg-[#fef2f2] border border-[#fecaca] rounded-lg p-4 mb-4">
-        <div className="flex items-start gap-3">
-          <div className="w-8 h-8 rounded-lg bg-[#dc2626] flex items-center justify-center flex-shrink-0">
-            <span className="text-white text-sm">💡</span>
-          </div>
-          <div className="flex-1">
-            <p className="text-[13px] font-semibold text-[#991b1b] mb-1">Logika Pembayaran ke Supplier</p>
-            <p className="text-[12px] text-[#7f1d1d]">
-              Total yang harus dibayar ke supplier = <strong>Total Harga Pesanan - Margin Trader</strong>
-              <br />
-              <span className="text-[11px]">Contoh: Total Rp60.000.000 - (50 m³ × Rp15.000) = Rp59.250.000</span>
-            </p>
-          </div>
-        </div>
-      </div>
+
 
       {/* Filters */}
       <div className="card mb-4">
@@ -376,11 +361,7 @@ export default function Payables() {
                 <p className="text-[12px] font-semibold text-[#dc2626]">Total Bayar ke Supplier</p>
                 <p className="text-[18px] font-bold text-[#dc2626]">{formatCurrency(calculateTotalPayable(selectedOrder))}</p>
               </div>
-              <div className="bg-[#fef3c7] rounded p-2 mt-2">
-                <p className="text-[11px] text-[#92400e] text-center">
-                  💡 Profit Anda: <strong>{formatCurrency(selectedOrder.totalVolume * TRADER_MARGIN_PER_M3)}</strong>
-                </p>
-              </div>
+
             </div>
 
             {selectedOrder.status !== 'paid' && (
@@ -421,11 +402,7 @@ export default function Payables() {
                 <span className="text-[13px] font-semibold text-[#dc2626]">Bayar ke Supplier:</span>
                 <span className="text-[20px] font-bold text-[#dc2626]">{formatCurrency(calculateTotalPayable(selectedOrder))}</span>
               </div>
-              <div className="bg-[#fef3c7] rounded p-2 mt-2">
-                <p className="text-[11px] text-[#92400e] text-center">
-                  💡 Profit Anda: <strong>{formatCurrency(selectedOrder.totalVolume * TRADER_MARGIN_PER_M3)}</strong>
-                </p>
-              </div>
+
             </div>
 
             <FormField label="Tanggal Pembayaran" required>

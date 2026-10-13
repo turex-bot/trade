@@ -184,41 +184,7 @@ export default function Prices() {
         </div>
       )}
 
-      {/* Info Box */}
-      {prices.length > 0 && (
-        <div className="card">
-          <div className="p-5">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
-                <Calculator className="w-5 h-5 text-blue-600" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-[14px] font-semibold text-[#0f172a] mb-2">Informasi Margin Trader</h3>
-                <p className="text-[13px] text-[#64748b] mb-3">
-                  Margin trader <strong className="text-[#166534]">Rp15.000/m³</strong> dihitung otomatis di halaman <strong>Keuangan → Uang Keluar (ke Supplier)</strong> sebagai biaya tambahan dari harga beli.
-                </p>
-                <div className="bg-[#f8fafc] rounded-lg p-3 border border-[#f1f5f9]">
-                  <p className="text-[12px] text-[#64748b] mb-2">Contoh Perhitungan:</p>
-                  <div className="space-y-1.5 text-[12px]">
-                    <div className="flex justify-between">
-                      <span className="text-[#64748b]">Harga Beli:</span>
-                      <span className="font-medium text-[#0f172a]">{formatCurrency(prices[0]?.buyPrice || 0)}/m³</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-[#64748b]">Margin Trader:</span>
-                      <span className="font-medium text-[#f59e0b]">Rp15.000/m³</span>
-                    </div>
-                    <div className="flex justify-between pt-1.5 border-t border-[#e2e8f0]">
-                      <span className="font-semibold text-[#0f172a]">Total Bayar ke Supplier:</span>
-                      <span className="font-bold text-[#dc2626]">{formatCurrency((prices[0]?.buyPrice || 0) + 15000)}/m³</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+
 
       {/* Form Modal */}
       <Modal
@@ -275,11 +241,7 @@ export default function Prices() {
                   <p className="font-semibold text-[#0f172a]">{formatCurrency(formData.buyPricePerLog)}</p>
                 </div>
               </div>
-              <div className="mt-3 pt-3 border-t border-[#dcfce7]">
-                <p className="text-[11px] text-[#64748b]">
-                  💡 Margin trader Rp15.000/m³ akan dihitung otomatis di halaman <strong>Uang Keluar</strong>
-                </p>
-              </div>
+
             </div>
           )}
 

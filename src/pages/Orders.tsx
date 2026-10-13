@@ -884,15 +884,7 @@ function CreateOrderModal({ open, onClose, companies, suppliers, woodSpecs, pric
           </div>
         )}
 
-        {selectedCompany && (
-          <div className="bg-[#fefce8] border border-[#fef08a] rounded-lg p-3 flex items-start gap-2">
-            <AlertTriangle className="w-4 h-4 text-[#a16207] mt-0.5 flex-shrink-0" />
-            <div>
-              <p className="text-[12px] font-medium text-[#713f12]">Credit Limit: {formatCurrency(selectedCompany.creditLimit)}</p>
-              <p className="text-[11px] text-[#854d0e] mt-0.5">Pastikan total piutang + nilai pesanan tidak melebihi credit limit.</p>
-            </div>
-          </div>
-        )}
+
 
         {/* Upload Hasil Tally */}
         <div>
