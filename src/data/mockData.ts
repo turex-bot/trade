@@ -33,7 +33,7 @@ export interface WoodSpec {
   avgDiameter: number; // cm - diameter rata-rata untuk kalkulasi
   standardLength: number; // meter - panjang standar batang
   volumePerLog: number; // m³ per batang (dihitung dari diameter & panjang)
-  grade: 'A' | 'B' | 'C';
+  grade: 'Reguler' | 'Premium';
   unit: string;
   notes: string;
 }

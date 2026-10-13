@@ -22,7 +22,7 @@ export default function WoodSpecs() {
     avgDiameter: 0,
     standardLength: 4,
     volumePerLog: 0,
-    grade: 'A' as 'A' | 'B' | 'C',
+    grade: 'Reguler' as 'Reguler' | 'Premium',
     unit: 'm³',
     notes: ''
   });
@@ -34,9 +34,8 @@ export default function WoodSpecs() {
 
   const getGradeBadge = (grade: string) => {
     switch (grade) {
-      case 'A': return <Badge variant="green">Grade A</Badge>;
-      case 'B': return <Badge variant="blue">Grade B</Badge>;
-      case 'C': return <Badge variant="orange">Grade C</Badge>;
+      case 'Premium': return <Badge variant="green">Premium</Badge>;
+      case 'Reguler': return <Badge variant="blue">Reguler</Badge>;
       default: return <Badge variant="gray">{grade}</Badge>;
     }
   };
@@ -81,7 +80,7 @@ export default function WoodSpecs() {
       avgDiameter: 0,
       standardLength: 4,
       volumePerLog: 0,
-      grade: 'A',
+      grade: 'Reguler',
       unit: 'm³',
       notes: ''
     });
@@ -325,13 +324,12 @@ export default function WoodSpecs() {
           <FormField label="Grade" required>
             <select 
               value={formData.grade}
-              onChange={(e) => setFormData({...formData, grade: e.target.value as 'A' | 'B' | 'C'})}
+              onChange={(e) => setFormData({...formData, grade: e.target.value as 'Reguler' | 'Premium'})}
               className="input-field"
               required
             >
-              <option value="A">Grade A - Premium</option>
-              <option value="B">Grade B - Standar</option>
-              <option value="C">Grade C - Ekonomis</option>
+              <option value="Premium">Premium - Kualitas Tinggi</option>
+              <option value="Reguler">Reguler - Standar</option>
             </select>
           </FormField>
           <FormField label="Keterangan" hint="Opsional, informasi tambahan">

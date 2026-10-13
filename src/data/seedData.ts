@@ -143,7 +143,7 @@ export function seedWoodSpecs(): WoodSpec[] {
       avgDiameter: 25,
       standardLength: 4,
       volumePerLog: 0.196,
-      grade: 'A', 
+      grade: 'Premium', 
       unit: 'm³', 
       notes: 'Bebas kulit, kadar air maks 15%' 
     },
@@ -156,7 +156,7 @@ export function seedWoodSpecs(): WoodSpec[] {
       avgDiameter: 35,
       standardLength: 4,
       volumePerLog: 0.385,
-      grade: 'A', 
+      grade: 'Premium', 
       unit: 'm³', 
       notes: 'Kualitas premium, lurus' 
     },
@@ -169,7 +169,7 @@ export function seedWoodSpecs(): WoodSpec[] {
       avgDiameter: 25,
       standardLength: 4,
       volumePerLog: 0.196,
-      grade: 'B', 
+      grade: 'Reguler', 
       unit: 'm³', 
       notes: 'Untuk core plywood' 
     },

@@ -277,7 +277,7 @@ function CreateOrderModal({ open, onClose, companies, suppliers, woodSpecs, pric
     const orderItem = {
       id: Math.random().toString(36).substr(2, 9),
       woodSpecId: selectedSpecId,
-      woodSpecName: selectedSpec ? `${selectedSpec.woodType} ${selectedSpec.diameterRange} Grade ${selectedSpec.grade}` : '',
+      woodSpecName: selectedSpec ? `${selectedSpec.woodType} ${selectedSpec.diameterRange} ${selectedSpec.grade}` : '',
       numberOfLogs: numberOfLogs,
       volumePerLog: selectedSpec?.volumePerLog || 0,
       volume: autoVolume,
@@ -394,7 +394,7 @@ function CreateOrderModal({ open, onClose, companies, suppliers, woodSpecs, pric
                 <option value="">-- Pilih Spesifikasi --</option>
                 {woodSpecs.map(spec => (
                   <option key={spec.id} value={spec.id}>
-                    {spec.woodType} {spec.diameterRange} Grade {spec.grade}
+                    {spec.woodType} {spec.diameterRange} {spec.grade}
                   </option>
                 ))}
               </select>

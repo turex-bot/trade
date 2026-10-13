@@ -43,7 +43,7 @@ export default function Prices() {
         buyPricePerLog: Math.round(buyPricePerLog),
         sellPrice: sellPrice,
         sellPricePerLog: Math.round(sellPricePerLog),
-        woodSpecName: `${spec.woodType} ${spec.diameterRange} Grade ${spec.grade}`
+        woodSpecName: `${spec.woodType} ${spec.diameterRange} ${spec.grade}`
       }));
     }
   }, [formData.buyPrice, formData.traderMargin, formData.woodSpecId, woodSpecs]);
@@ -259,7 +259,7 @@ export default function Prices() {
               <option value="">Pilih Spesifikasi</option>
               {woodSpecs.map(spec => (
                 <option key={spec.id} value={spec.id}>
-                  {spec.woodType} {spec.diameterRange} Grade {spec.grade}
+                  {spec.woodType} {spec.diameterRange} {spec.grade}
                 </option>
               ))}
             </select>
