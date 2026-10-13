@@ -19,9 +19,6 @@ export default function Prices() {
     woodSpecName: '',
     buyPrice: 0,
     buyPricePerLog: 0,
-    traderMargin: 15000,
-    sellPrice: 0,
-    sellPricePerLog: 0,
     effectiveDate: new Date().toISOString().split('T')[0],
     isActive: true
   });
@@ -30,23 +27,19 @@ export default function Prices() {
     p.woodSpecName.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Auto-kalkulasi harga per batang dan harga jual
+  // Auto-kalkulasi harga per batang
   useEffect(() => {
     const spec = woodSpecs.find(s => s.id === formData.woodSpecId);
     if (spec && formData.buyPrice > 0) {
       const buyPricePerLog = formData.buyPrice * spec.volumePerLog;
-      const sellPrice = formData.buyPrice + formData.traderMargin;
-      const sellPricePerLog = sellPrice * spec.volumePerLog;
       
       setFormData(prev => ({
         ...prev,
         buyPricePerLog: Math.round(buyPricePerLog),
-        sellPrice: sellPrice,
-        sellPricePerLog: Math.round(sellPricePerLog),
         woodSpecName: `${spec.woodType} ${spec.diameterRange} ${spec.grade}`
       }));
     }
-  }, [formData.buyPrice, formData.traderMargin, formData.woodSpecId, woodSpecs]);
+  }, [formData.buyPrice, formData.woodSpecId, woodSpecs]);
 
   const handleOpenAdd = () => {
     setEditingPrice(null);
@@ -55,9 +48,6 @@ export default function Prices() {
       woodSpecName: '',
       buyPrice: 0,
       buyPricePerLog: 0,
-      traderMargin: 15000,
-      sellPrice: 0,
-      sellPricePerLog: 0,
       effectiveDate: new Date().toISOString().split('T')[0],
       isActive: true
     });
@@ -71,9 +61,6 @@ export default function Prices() {
       woodSpecName: price.woodSpecName,
       buyPrice: price.buyPrice,
       buyPricePerLog: price.buyPricePerLog,
-      traderMargin: price.traderMargin,
-      sellPrice: price.sellPrice,
-      sellPricePerLog: price.sellPricePerLog,
       effectiveDate: price.effectiveDate,
       isActive: price.isActive
     });
@@ -83,11 +70,19 @@ export default function Prices() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Tambahkan field margin dan harga jual dengan nilai default
+    const priceData = {
+      ...formData,
+      traderMargin: 15000, // Default margin trader
+      sellPrice: formData.buyPrice + 15000, // Harga jual = harga beli + margin
+      sellPricePerLog: formData.buyPricePerLog + (15000 * (formData.buyPricePerLog / formData.buyPrice)) // Proporsional
+    };
+    
     if (editingPrice) {
-      updatePrice(editingPrice.id, formData);
+      updatePrice(editingPrice.id, priceData);
       toast.success('Harga berhasil diupdate');
     } else {
-      addPrice(formData);
+      addPrice(priceData);
       toast.success('Harga berhasil ditambahkan');
     }
     
@@ -133,9 +128,6 @@ export default function Prices() {
                   <th>Spesifikasi Kayu</th>
                   <th className="text-right">Harga Beli/m³</th>
                   <th className="text-right">Harga Beli/Batang</th>
-                  <th className="text-right">Margin/m³</th>
-                  <th className="text-right">Harga Jual/m³</th>
-                  <th className="text-right">Harga Jual/Batang</th>
                   <th className="text-center">Berlaku</th>
                   <th className="text-center">Status</th>
                   <th className="text-center">Aksi</th>
@@ -157,15 +149,6 @@ export default function Prices() {
                     </td>
                     <td className="text-right">
                       <span className="text-[13px] font-medium text-[#334155]">{formatCurrency(price.buyPricePerLog)}</span>
-                    </td>
-                    <td className="text-right">
-                      <span className="text-[13px] font-semibold text-[#166534]">+{formatCurrency(price.traderMargin)}</span>
-                    </td>
-                    <td className="text-right">
-                      <span className="text-[13px] font-bold text-[#0f172a]">{formatCurrency(price.sellPrice)}</span>
-                    </td>
-                    <td className="text-right">
-                      <span className="text-[13px] font-bold text-[#166534]">{formatCurrency(price.sellPricePerLog)}</span>
                     </td>
                     <td className="text-center text-[12px] text-[#64748b]">{new Date(price.effectiveDate).toLocaleDateString('id-ID')}</td>
                     <td className="text-center">
@@ -201,34 +184,36 @@ export default function Prices() {
         </div>
       )}
 
-      {/* Price Calculation Example */}
+      {/* Info Box */}
       {prices.length > 0 && (
         <div className="card">
           <div className="p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <Calculator className="w-4 h-4 text-[#166534]" />
-              <h3 className="text-[14px] font-semibold text-[#0f172a]">Contoh Perhitungan Margin</h3>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-              <div className="bg-[#f8fafc] rounded-lg p-4 border border-[#f1f5f9]">
-                <p className="text-[11px] text-[#64748b] mb-1">Harga Beli Depo</p>
-                <p className="text-[15px] font-bold text-[#0f172a]">{formatCurrency(prices[0]?.buyPrice || 0)}</p>
-                <p className="text-[11px] text-[#94a3b8]">per m³</p>
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
+                <Calculator className="w-5 h-5 text-blue-600" />
               </div>
-              <div className="bg-[#f8fafc] rounded-lg p-4 border border-[#f1f5f9]">
-                <p className="text-[11px] text-[#64748b] mb-1">Margin Trader</p>
-                <p className="text-[15px] font-bold text-[#166534]">+{formatCurrency(prices[0]?.traderMargin || 0)}</p>
-                <p className="text-[11px] text-[#94a3b8]">per m³</p>
-              </div>
-              <div className="bg-[#f8fafc] rounded-lg p-4 border border-[#f1f5f9]">
-                <p className="text-[11px] text-[#64748b] mb-1">Harga Jual</p>
-                <p className="text-[15px] font-bold text-[#0f172a]">{formatCurrency(prices[0]?.sellPrice || 0)}</p>
-                <p className="text-[11px] text-[#94a3b8]">per m³</p>
-              </div>
-              <div className="bg-[#f0fdf4] rounded-lg p-4 border border-[#dcfce7]">
-                <p className="text-[11px] text-[#166534] mb-1 font-medium">Profit (50 m³)</p>
-                <p className="text-[15px] font-bold text-[#166534]">{formatCurrency((prices[0]?.traderMargin || 0) * 50)}</p>
-                <p className="text-[11px] text-[#16a34a]">50 × {formatCurrency(prices[0]?.traderMargin || 0)}</p>
+              <div className="flex-1">
+                <h3 className="text-[14px] font-semibold text-[#0f172a] mb-2">Informasi Margin Trader</h3>
+                <p className="text-[13px] text-[#64748b] mb-3">
+                  Margin trader <strong className="text-[#166534]">Rp15.000/m³</strong> dihitung otomatis di halaman <strong>Keuangan → Uang Keluar (ke Supplier)</strong> sebagai biaya tambahan dari harga beli.
+                </p>
+                <div className="bg-[#f8fafc] rounded-lg p-3 border border-[#f1f5f9]">
+                  <p className="text-[12px] text-[#64748b] mb-2">Contoh Perhitungan:</p>
+                  <div className="space-y-1.5 text-[12px]">
+                    <div className="flex justify-between">
+                      <span className="text-[#64748b]">Harga Beli:</span>
+                      <span className="font-medium text-[#0f172a]">{formatCurrency(prices[0]?.buyPrice || 0)}/m³</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-[#64748b]">Margin Trader:</span>
+                      <span className="font-medium text-[#f59e0b]">Rp15.000/m³</span>
+                    </div>
+                    <div className="flex justify-between pt-1.5 border-t border-[#e2e8f0]">
+                      <span className="font-semibold text-[#0f172a]">Total Bayar ke Supplier:</span>
+                      <span className="font-bold text-[#dc2626]">{formatCurrency((prices[0]?.buyPrice || 0) + 15000)}/m³</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -265,27 +250,16 @@ export default function Prices() {
             </select>
           </FormField>
           
-          <div className="grid grid-cols-2 gap-4">
-            <FormField label="Harga Beli Depo (per m³)" required>
-              <input 
-                type="number" 
-                value={formData.buyPrice || ''}
-                onChange={(e) => setFormData({...formData, buyPrice: parseInt(e.target.value) || 0})}
-                className="input-field" 
-                placeholder="1200000" 
-                required
-              />
-            </FormField>
-            <FormField label="Margin Trader (per m³)" hint="Default: Rp15.000">
-              <input 
-                type="number" 
-                value={formData.traderMargin}
-                onChange={(e) => setFormData({...formData, traderMargin: parseInt(e.target.value) || 0})}
-                className="input-field" 
-                required
-              />
-            </FormField>
-          </div>
+          <FormField label="Harga Beli Depo (per m³)" required>
+            <input 
+              type="number" 
+              value={formData.buyPrice || ''}
+              onChange={(e) => setFormData({...formData, buyPrice: parseInt(e.target.value) || 0})}
+              className="input-field" 
+              placeholder="1200000" 
+              required
+            />
+          </FormField>
 
           {/* Auto-kalkulasi preview */}
           {formData.woodSpecId && formData.buyPrice > 0 && (
@@ -293,21 +267,18 @@ export default function Prices() {
               <p className="text-[11px] text-[#166534] font-medium mb-2">Kalkulasi Otomatis</p>
               <div className="grid grid-cols-2 gap-3 text-[12px]">
                 <div>
-                  <p className="text-[#64748b]">Harga Jual/m³</p>
-                  <p className="font-bold text-[#166534]">{formatCurrency(formData.sellPrice)}</p>
+                  <p className="text-[#64748b]">Harga Beli/m³</p>
+                  <p className="font-bold text-[#0f172a]">{formatCurrency(formData.buyPrice)}</p>
                 </div>
                 <div>
                   <p className="text-[#64748b]">Harga Beli/Batang</p>
                   <p className="font-semibold text-[#0f172a]">{formatCurrency(formData.buyPricePerLog)}</p>
                 </div>
-                <div>
-                  <p className="text-[#64748b]">Harga Jual/Batang</p>
-                  <p className="font-bold text-[#166534]">{formatCurrency(formData.sellPricePerLog)}</p>
-                </div>
-                <div>
-                  <p className="text-[#64748b]">Profit per m³</p>
-                  <p className="font-semibold text-[#166534]">{formatCurrency(formData.traderMargin)}</p>
-                </div>
+              </div>
+              <div className="mt-3 pt-3 border-t border-[#dcfce7]">
+                <p className="text-[11px] text-[#64748b]">
+                  💡 Margin trader Rp15.000/m³ akan dihitung otomatis di halaman <strong>Uang Keluar</strong>
+                </p>
               </div>
             </div>
           )}
