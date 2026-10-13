@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Search, Eye, AlertTriangle, Calculator, Trash2, X } from 'lucide-react';
+import { Plus, Search, Eye, AlertTriangle, Calculator, Trash2, X, Upload } from 'lucide-react';
 import { Order, OrderItem } from '../data/mockData';
 import { PageHeader, Modal, Badge, FormField, Tabs } from '../components/ui';
 import { useData } from '../context/DataContext';
@@ -318,8 +318,11 @@ function CreateOrderModal({ open, onClose, companies, suppliers, woodSpecs, pric
     woodSpecId: string;
     diameter: number; // diameter tunggal untuk semua batang di item ini
     numberOfLogs: number; // jumlah batang (pcs)
-    lengthCm: number; // panjang dalam cm
+    lengthCm: number; // panjang dalam cm (otomatis dari master data)
   }>>([]);
+
+  // File upload state
+  const [tallyFile, setTallyFile] = useState<File | null>(null);
 
   const selectedCompany = companies.find(c => c.id === companyId);
   const selectedSupplier = suppliers.find(s => s.id === supplierId);
@@ -353,7 +356,7 @@ function CreateOrderModal({ open, onClose, companies, suppliers, woodSpecs, pric
       woodSpecId: '', 
       diameter: 0, 
       numberOfLogs: 0, 
-      lengthCm: 400 
+      lengthCm: 0 // akan di-auto-fill saat pilih woodSpecId
     }]);
   };
 
@@ -365,12 +368,12 @@ function CreateOrderModal({ open, onClose, companies, suppliers, woodSpecs, pric
     const newItems = [...orderItems];
     (newItems[index] as any)[field] = value;
     
-    // Auto-set length from spec when woodSpecId changes
+    // Auto-set length and diameter from spec when woodSpecId changes
     if (field === 'woodSpecId' && value) {
       const spec = woodSpecs.find(s => s.id === value);
       if (spec) {
-        newItems[index].lengthCm = spec.standardLength;
-        newItems[index].diameter = spec.avgDiameter;
+        newItems[index].lengthCm = spec.standardLength; // Auto-fill panjang dari master data
+        newItems[index].diameter = spec.avgDiameter; // Auto-fill diameter rata-rata
       }
     }
     
@@ -392,7 +395,7 @@ function CreateOrderModal({ open, onClose, companies, suppliers, woodSpecs, pric
 
     // Validate all items
     const validItems = orderItems.filter(item => 
-      item.woodSpecId && item.diameter > 0 && item.numberOfLogs > 0 && item.lengthCm > 0
+      item.woodSpecId && item.diameter > 0 && item.numberOfLogs > 0
     );
     
     if (validItems.length === 0) {
@@ -548,10 +551,10 @@ function CreateOrderModal({ open, onClose, companies, suppliers, woodSpecs, pric
               {/* Header Row */}
               <div className="grid grid-cols-12 gap-2 px-2 py-1.5 bg-[#f8fafc] rounded-lg text-[11px] font-semibold text-[#64748b]">
                 <div className="col-span-3">Jenis Kayu</div>
-                <div className="col-span-2">Diameter (cm)</div>
+                <div className="col-span-2">Range Diameter</div>
+                <div className="col-span-2">Diameter Tepat (cm)</div>
                 <div className="col-span-2">Jumlah (pcs)</div>
-                <div className="col-span-2">Panjang (cm)</div>
-                <div className="col-span-2 text-right">Kubikasi</div>
+                <div className="col-span-2 text-right">Kubikasi & Nilai</div>
                 <div className="col-span-1 text-center">Aksi</div>
               </div>
 
@@ -569,7 +572,7 @@ function CreateOrderModal({ open, onClose, companies, suppliers, woodSpecs, pric
 
                 return (
                   <div key={index} className="grid grid-cols-12 gap-2 items-end py-2 border-b border-[#f1f5f9] last:border-0">
-                    {/* Jenis Kayu - Dropdown */}
+                    {/* Jenis Kayu - Dropdown dengan Grade */}
                     <div className="col-span-3">
                       <select 
                         className="input-field text-[12px]"
@@ -577,25 +580,46 @@ function CreateOrderModal({ open, onClose, companies, suppliers, woodSpecs, pric
                         onChange={(e) => handleItemChange(index, 'woodSpecId', e.target.value)}
                         required
                       >
-                        <option value="">Pilih Jenis</option>
+                        <option value="">Pilih Jenis Kayu</option>
                         {woodSpecs.map(spec => (
                           <option key={spec.id} value={spec.id}>
-                            {spec.woodType} {spec.diameterRange} {spec.grade}
+                            {spec.woodType} - {spec.grade}
                           </option>
                         ))}
                       </select>
+                      {spec && (
+                        <p className="text-[10px] text-[#64748b] mt-0.5">
+                          Panjang: {spec.standardLength} cm
+                        </p>
+                      )}
                     </div>
 
-                    {/* Diameter */}
+                    {/* Range Diameter - Display Only */}
+                    <div className="col-span-2">
+                      {spec ? (
+                        <div className="input-field text-[12px] bg-[#f8fafc] text-[#64748b] flex items-center">
+                          {spec.diameterRange}
+                        </div>
+                      ) : (
+                        <div className="input-field text-[12px] bg-[#f8fafc] text-[#94a3b8] flex items-center">
+                          -
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Diameter Tepat - Input dengan Placeholder Range */}
                     <div className="col-span-2">
                       <input 
                         type="number"
                         className="input-field text-[12px]"
                         value={item.diameter || ''}
                         onChange={(e) => handleItemChange(index, 'diameter', parseFloat(e.target.value) || 0)}
-                        placeholder="21"
+                        placeholder={spec ? `${spec.diameterMin}-${spec.diameterMax}` : 'Pilih jenis dulu'}
                         step="0.1"
+                        min={spec?.diameterMin || 0}
+                        max={spec?.diameterMax || 999}
                         required
+                        disabled={!spec}
                       />
                     </div>
 
@@ -612,19 +636,7 @@ function CreateOrderModal({ open, onClose, companies, suppliers, woodSpecs, pric
                       />
                     </div>
 
-                    {/* Panjang */}
-                    <div className="col-span-2">
-                      <input 
-                        type="number"
-                        className="input-field text-[12px]"
-                        value={item.lengthCm}
-                        onChange={(e) => handleItemChange(index, 'lengthCm', parseInt(e.target.value) || 0)}
-                        placeholder="130"
-                        required
-                      />
-                    </div>
-
-                    {/* Kubikasi & Harga */}
+                    {/* Kubikasi & Nilai */}
                     <div className="col-span-2 text-right">
                       {item.numberOfLogs > 0 && item.diameter > 0 && (
                         <div className="text-[11px]">
@@ -686,6 +698,36 @@ function CreateOrderModal({ open, onClose, companies, suppliers, woodSpecs, pric
             </div>
           </div>
         )}
+
+        {/* Upload Hasil Tally */}
+        <div>
+          <label className="block text-[12px] font-medium text-[#334155] mb-1.5">
+            Upload Hasil Tally (Opsional)
+          </label>
+          <div className="border-2 border-dashed border-[#e2e8f0] rounded-lg p-4 text-center hover:border-[#166534] transition-colors cursor-pointer bg-[#f8fafc]">
+            <input 
+              type="file" 
+              accept=".xlsx,.xls,.csv,.pdf,.jpg,.jpeg,.png"
+              onChange={(e) => setTallyFile(e.target.files?.[0] || null)}
+              className="hidden"
+              id="tally-upload"
+            />
+            <label htmlFor="tally-upload" className="cursor-pointer">
+              <Upload className="w-6 h-6 text-[#94a3b8] mx-auto mb-2" />
+              {tallyFile ? (
+                <div>
+                  <p className="text-[12px] font-medium text-[#166534]">{tallyFile.name}</p>
+                  <p className="text-[11px] text-[#64748b] mt-1">Klik untuk ganti file</p>
+                </div>
+              ) : (
+                <div>
+                  <p className="text-[12px] text-[#64748b]">Klik untuk upload file tally</p>
+                  <p className="text-[11px] text-[#94a3b8] mt-1">Format: Excel, CSV, PDF, atau Gambar (Maks 5MB)</p>
+                </div>
+              )}
+            </label>
+          </div>
+        </div>
 
         <FormField label="Catatan">
           <textarea 
