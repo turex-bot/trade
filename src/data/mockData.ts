@@ -70,17 +70,13 @@ export interface OrderItem {
   id: string;
   woodSpecName: string;
   woodSpecId: string;
-  numberOfLogs: number; // jumlah batang
-  logDiameters: number[]; // diameter aktual per batang dalam cm (misal: [21, 22, 23, 21, 22])
-  logLength: number; // panjang batang dalam meter
-  volumeDm3: number; // total volume dalam dm³ (hasil kalkulasi per batang)
-  volume: number; // total volume dalam m³ (volumeDm3 / 1000)
-  buyPricePerLog: number; // harga beli per batang
-  sellPricePerLog: number; // harga jual per batang
-  buyPrice: number; // harga beli per m³ (untuk referensi)
-  sellPrice: number; // harga jual per m³ (untuk referensi)
-  totalBuyValue: number; // numberOfLogs × buyPricePerLog
-  totalSellValue: number; // numberOfLogs × sellPricePerLog
+  numberOfLogs: number; // jumlah batang (pcs)
+  volume: number; // total kubikasi dalam m³ (input dari user)
+  diameterRange: string; // range diameter dari master data (contoh: "19-24 cm")
+  buyPrice: number; // harga beli per m³
+  sellPrice: number; // harga jual per m³
+  totalBuyValue: number; // volume × buyPrice
+  totalSellValue: number; // volume × sellPrice
 }
 
 export interface Delivery {

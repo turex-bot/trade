@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Building2, TreePine, ClipboardList,
   FileText, CreditCard, BarChart3, Menu, X, LogOut,
   ChevronRight, Bell, Search, User, Settings, Package,
-  Truck, Receipt, AlertCircle, TrendingDown, TrendingUp
+  Truck, Receipt, AlertCircle, TrendingDown, TrendingUp, FileCheck
 } from 'lucide-react';
 import { NotificationCenter } from './NotificationCenter';
 
@@ -24,7 +24,7 @@ const navItems: NavItem[] = [
   {
     label: 'Transaksi', icon: ClipboardList,
     children: [
-      { label: 'Pesanan', path: '/transactions/orders', icon: ClipboardList },
+      { label: 'Hasil Cek', path: '/transactions/result-check', icon: FileCheck },
     ]
   },
   {

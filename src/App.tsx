@@ -7,7 +7,7 @@ import Suppliers from './pages/Suppliers';
 import Companies from './pages/Companies';
 import WoodSpecs from './pages/WoodSpecs';
 import Prices from './pages/Prices';
-import Orders from './pages/Orders';
+import ResultCheck from './pages/ResultCheck';
 import Payables from './pages/Payables';
 import Receivables from './pages/Receivables';
 import Reports from './pages/Reports';
@@ -53,7 +53,7 @@ function App() {
               <Route path="/master/companies" element={<Companies />} />
               <Route path="/master/wood-specs" element={<WoodSpecs />} />
               <Route path="/master/prices" element={<Prices />} />
-            <Route path="/transactions/orders" element={<Orders />} />
+            <Route path="/transactions/result-check" element={<ResultCheck />} />
             <Route path="/finance/payables" element={<Payables />} />
             <Route path="/finance/receivables" element={<Receivables />} />              <Route path="/reports" element={<Reports />} />
               <Route path="/settings" element={<SettingsPage />} />
