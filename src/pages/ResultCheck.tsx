@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Plus, Search, Eye, AlertTriangle, Calculator, Trash2, FileCheck } from 'lucide-react';
-import { Order, OrderItem, woodSpecs, prices } from '../data/mockData';
+import { Order, OrderItem } from '../data/mockData';
 import { PageHeader, Modal, Badge, FormField, Tabs } from '../components/ui';
 import { useData } from '../context/DataContext';
 import { useToast } from '../components/Toast';
@@ -8,7 +8,7 @@ import { formatCurrency, formatDate } from '../data/mockData';
 import { formatVolumeM3, formatNumberID } from '../utils/logVolumeFormatter';
 
 export default function ResultCheck() {
-  const { orders, companies, suppliers, addOrder, updateOrder, deleteOrder } = useData();
+  const { orders, companies, suppliers, woodSpecs, prices, addOrder, updateOrder, deleteOrder } = useData();
   const toast = useToast();
   
   const [searchQuery, setSearchQuery] = useState('');
@@ -97,6 +97,7 @@ export default function ResultCheck() {
                     <th>Tanggal</th>
                     <th>Perusahaan</th>
                     <th>Supplier</th>
+                    <th>Jenis Kayu</th>
                     <th className="text-right">Total Batang</th>
                     <th className="text-right">Total Kubikasi</th>
                     <th className="text-right">Nilai</th>
@@ -113,6 +114,9 @@ export default function ResultCheck() {
                       <td className="text-[12px] text-[#64748b]">{formatDate(order.orderDate)}</td>
                       <td className="text-[13px] text-[#0f172a] font-medium">{order.companyName}</td>
                       <td className="text-[12px] text-[#64748b]">{order.supplierName}</td>
+                      <td className="text-[12px] text-[#64748b]">
+                        {order.items.map(item => item.woodSpecName).join(', ')}
+                      </td>
                       <td className="text-right text-[13px] font-semibold text-[#0f172a]">
                         {order.items.reduce((sum, item) => sum + item.numberOfLogs, 0)} pcs
                       </td>
@@ -195,6 +199,7 @@ export default function ResultCheck() {
                     <tr>
                       <th>Jenis Kayu</th>
                       <th>Range Diameter</th>
+                      <th>Panjang</th>
                       <th className="text-right">Jumlah Batang</th>
                       <th className="text-right">Kubikasi</th>
                       <th className="text-right">Harga/m³</th>
@@ -202,16 +207,20 @@ export default function ResultCheck() {
                     </tr>
                   </thead>
                   <tbody>
-                    {selectedOrder.items.map(item => (
-                      <tr key={item.id}>
-                        <td className="text-[12px] text-[#0f172a] font-medium">{item.woodSpecName}</td>
-                        <td className="text-[12px] text-[#64748b]">{item.diameterRange}</td>
-                        <td className="text-right text-[12px] font-semibold">{item.numberOfLogs} pcs</td>
-                        <td className="text-right text-[12px] font-medium">{item.volume.toFixed(3)} m³</td>
-                        <td className="text-right text-[12px] text-[#166534]">{formatCurrency(item.sellPrice)}/m³</td>
-                        <td className="text-right text-[12px] font-bold text-[#0f172a]">{formatCurrency(item.totalSellValue)}</td>
-                      </tr>
-                    ))}
+                    {selectedOrder.items.map(item => {
+                      const spec = woodSpecs.find(s => s.id === item.woodSpecId);
+                      return (
+                        <tr key={item.id}>
+                          <td className="text-[12px] text-[#0f172a] font-medium">{item.woodSpecName}</td>
+                          <td className="text-[12px] text-[#64748b]">{item.diameterRange}</td>
+                          <td className="text-[12px] text-[#64748b]">{spec?.standardLength || '-'} cm</td>
+                          <td className="text-right text-[12px] font-semibold">{item.numberOfLogs} pcs</td>
+                          <td className="text-right text-[12px] font-medium">{item.volume.toFixed(3)} m³</td>
+                          <td className="text-right text-[12px] text-[#166534]">{formatCurrency(item.sellPrice)}/m³</td>
+                          <td className="text-right text-[12px] font-bold text-[#0f172a]">{formatCurrency(item.totalSellValue)}</td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -287,6 +296,8 @@ export default function ResultCheck() {
         onClose={() => setShowForm(false)} 
         companies={companies}
         suppliers={suppliers}
+        woodSpecs={woodSpecs}
+        prices={prices}
         addOrder={addOrder}
         toast={toast}
       />
@@ -300,11 +311,13 @@ interface ResultCheckModalProps {
   onClose: () => void;
   companies: any[];
   suppliers: any[];
+  woodSpecs: any[];
+  prices: any[];
   addOrder: (order: any) => void;
   toast: any;
 }
 
-function ResultCheckModal({ open, onClose, companies, suppliers, addOrder, toast }: ResultCheckModalProps) {
+function ResultCheckModal({ open, onClose, companies, suppliers, woodSpecs, prices, addOrder, toast }: ResultCheckModalProps) {
   const [companyId, setCompanyId] = useState('');
   const [supplierId, setSupplierId] = useState('');
   const [checkDate, setCheckDate] = useState(new Date().toISOString().split('T')[0]);
@@ -521,8 +534,9 @@ function ResultCheckModal({ open, onClose, companies, suppliers, addOrder, toast
             <div className="space-y-2">
               {/* Header Row */}
               <div className="grid grid-cols-12 gap-2 px-2 py-1.5 bg-[#f8fafc] rounded-lg text-[11px] font-semibold text-[#64748b]">
-                <div className="col-span-3">Jenis Kayu</div>
+                <div className="col-span-2">Jenis Kayu</div>
                 <div className="col-span-2">Range Diameter</div>
+                <div className="col-span-1">Panjang</div>
                 <div className="col-span-2">Jumlah Batang</div>
                 <div className="col-span-2">Kubikasi (m³)</div>
                 <div className="col-span-2 text-right">Total Nilai</div>
@@ -540,7 +554,7 @@ function ResultCheckModal({ open, onClose, companies, suppliers, addOrder, toast
                 return (
                   <div key={index} className="grid grid-cols-12 gap-2 items-end py-2 border-b border-[#f1f5f9] last:border-0">
                     {/* Jenis Kayu - Dropdown */}
-                    <div className="col-span-3">
+                    <div className="col-span-2">
                       <select 
                         className="input-field text-[12px]"
                         value={item.woodSpecId}
@@ -564,6 +578,19 @@ function ResultCheckModal({ open, onClose, companies, suppliers, addOrder, toast
                         </div>
                       ) : (
                         <div className="input-field text-[12px] bg-[#f8fafc] text-[#94a3b8] flex items-center">
+                          -
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Panjang (cm) - Auto dari Master Data */}
+                    <div className="col-span-1">
+                      {spec ? (
+                        <div className="input-field text-[12px] bg-[#f8fafc] text-[#64748b] flex items-center justify-center">
+                          {spec.standardLength}
+                        </div>
+                      ) : (
+                        <div className="input-field text-[12px] bg-[#f8fafc] text-[#94a3b8] flex items-center justify-center">
                           -
                         </div>
                       )}
