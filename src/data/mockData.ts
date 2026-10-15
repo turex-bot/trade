@@ -65,6 +65,8 @@ export interface OrderItem {
 export interface Order {
   id: string;
   orderNumber: string;
+  noKedatangan: string; // No Kedatangan
+  noKendaraan: string; // No Kendaraan
   orderDate: string;
   companyId: string;
   companyName: string;

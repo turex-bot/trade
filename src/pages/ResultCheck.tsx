@@ -64,11 +64,11 @@ export default function ResultCheck() {
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>No. Hasil Cek</th>
+                  <th>No. Kedatangan</th>
+                  <th>No. Kendaraan</th>
                   <th>Tanggal</th>
                   <th>Perusahaan</th>
                   <th>Supplier</th>
-                  <th>Jenis Kayu</th>
                   <th className="text-right">Total Batang</th>
                   <th className="text-right">Total Kubikasi</th>
                   <th className="text-right">Nilai</th>
@@ -81,11 +81,11 @@ export default function ResultCheck() {
               <tbody>
                 {filteredOrders.map((order) => (
                   <tr key={order.id}>
-                    <td><span className="font-semibold text-[#166534] text-[12px]">{order.orderNumber}</span></td>
+                    <td><span className="font-semibold text-[#166534] text-[12px]">{order.noKedatangan}</span></td>
+                    <td><span className="text-[12px] text-[#0f172a]">{order.noKendaraan}</span></td>
                     <td className="text-[12px] text-[#64748b]">{formatDate(order.orderDate)}</td>
                     <td className="text-[13px] text-[#0f172a] font-medium">{order.companyName}</td>
                     <td className="text-[12px] text-[#64748b]">{order.supplierName}</td>
-                    <td className="text-[12px] text-[#64748b]">{order.items.map(item => item.woodSpecName).join(', ')}</td>
                     <td className="text-right text-[13px] font-semibold text-[#0f172a]">{order.items.reduce((sum, item) => sum + item.numberOfLogs, 0)} pcs</td>
                     <td className="text-right text-[13px] font-medium text-[#0f172a]">{order.totalVolume} m³</td>
                     <td className="text-right text-[13px] font-medium text-[#0f172a]">{formatCurrency(order.totalValue)}</td>
@@ -113,12 +113,16 @@ export default function ResultCheck() {
         )}
       </div>
 
-      <Modal open={!!selectedOrder} onClose={() => setSelectedOrder(null)} title={selectedOrder?.orderNumber || ''} subtitle={selectedOrder ? `Hasil Cek - ${formatDate(selectedOrder.orderDate)}` : ''} size="lg">
+      <Modal open={!!selectedOrder} onClose={() => setSelectedOrder(null)} title={selectedOrder?.noKedatangan || ''} subtitle={selectedOrder ? `No. Kendaraan: ${selectedOrder.noKendaraan} - ${formatDate(selectedOrder.orderDate)}` : ''} size="lg">
         {selectedOrder && (
           <div className="space-y-5">
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-[#f8fafc] rounded-lg p-3.5"><p className="text-[11px] text-[#64748b] mb-1">Perusahaan</p><p className="text-[13px] font-semibold text-[#0f172a]">{selectedOrder.companyName}</p></div>
               <div className="bg-[#f8fafc] rounded-lg p-3.5"><p className="text-[11px] text-[#64748b] mb-1">Supplier</p><p className="text-[13px] font-semibold text-[#0f172a]">{selectedOrder.supplierName}</p></div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-[#f8fafc] rounded-lg p-3.5"><p className="text-[11px] text-[#64748b] mb-1">No. Kedatangan</p><p className="text-[13px] font-semibold text-[#0f172a]">{selectedOrder.noKedatangan}</p></div>
+              <div className="bg-[#f8fafc] rounded-lg p-3.5"><p className="text-[11px] text-[#64748b] mb-1">No. Kendaraan</p><p className="text-[13px] font-semibold text-[#0f172a]">{selectedOrder.noKendaraan}</p></div>
             </div>
             <div className="bg-[#f0fdf4] rounded-lg p-4 border border-[#dcfce7]">
               <div className="grid grid-cols-5 gap-3">
@@ -156,6 +160,8 @@ interface ResultCheckModalProps {
 function ResultCheckModal({ open, onClose, companies, suppliers, woodSpecs, prices, addOrder, toast }: ResultCheckModalProps) {
   const [companyId, setCompanyId] = useState('');
   const [supplierId, setSupplierId] = useState('');
+  const [noKedatangan, setNoKedatangan] = useState('');
+  const [noKendaraan, setNoKendaraan] = useState('');
   const [checkDate, setCheckDate] = useState(new Date().toISOString().split('T')[0]);
   const [notes, setNotes] = useState('');
   const [checkItems, setCheckItems] = useState<Array<{ woodSpecId: string; numberOfLogs: number; volume: number }>>([]);
@@ -220,6 +226,8 @@ function ResultCheckModal({ open, onClose, companies, suppliers, woodSpecs, pric
 
     addOrder({
       orderDate: checkDate,
+      noKedatangan,
+      noKendaraan,
       companyId,
       companyName: selectedCompany?.name || '',
       supplierId,
@@ -235,6 +243,8 @@ function ResultCheckModal({ open, onClose, companies, suppliers, woodSpecs, pric
     toast.success('Hasil cek berhasil dikonfirmasi', `${validItems.length} item telah dicatat dan langsung dikonfirmasi`);
     setCompanyId('');
     setSupplierId('');
+    setNoKedatangan('');
+    setNoKendaraan('');
     setNotes('');
     setCheckItems([]);
     onClose();
@@ -244,6 +254,15 @@ function ResultCheckModal({ open, onClose, companies, suppliers, woodSpecs, pric
     <Modal open={open} onClose={onClose} title="Input Hasil Cek" subtitle="Catat jumlah batang dan kubikasi" size="lg" footer={<><button onClick={onClose} className="btn btn-secondary">Batal</button><button onClick={handleSubmit} className="btn btn-primary" disabled={!companyId || !supplierId || checkItems.length === 0}>Simpan Hasil Cek</button></>}>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-3 gap-3">
+          <FormField label="No. Kedatangan" required>
+            <input type="text" value={noKedatangan} onChange={(e) => setNoKedatangan(e.target.value)} className="input-field" placeholder="KD-001" required />
+          </FormField>
+          <FormField label="No. Kendaraan" required>
+            <input type="text" value={noKendaraan} onChange={(e) => setNoKendaraan(e.target.value)} className="input-field" placeholder="B 1234 XYZ" required />
+          </FormField>
+          <FormField label="Tanggal" required><input type="date" value={checkDate} onChange={(e) => setCheckDate(e.target.value)} className="input-field" required /></FormField>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
           <FormField label="Perusahaan" required>
             <select value={companyId} onChange={(e) => setCompanyId(e.target.value)} className="input-field" required>
               <option value="">Pilih</option>
@@ -256,7 +275,6 @@ function ResultCheckModal({ open, onClose, companies, suppliers, woodSpecs, pric
               {suppliers.filter(s => s.status === 'aktif').map(s => (<option key={s.id} value={s.id}>{s.name}</option>))}
             </select>
           </FormField>
-          <FormField label="Tanggal" required><input type="date" value={checkDate} onChange={(e) => setCheckDate(e.target.value)} className="input-field" required /></FormField>
         </div>
 
         <div>

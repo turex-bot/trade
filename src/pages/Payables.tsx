@@ -80,7 +80,8 @@ export default function Payables() {
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>No. Order</th>
+                  <th>No. Kedatangan</th>
+                  <th>No. Kendaraan</th>
                   <th>Tanggal</th>
                   <th>Supplier</th>
                   <th className="text-right">Volume</th>
@@ -98,7 +99,8 @@ export default function Payables() {
                   const totalPayable = hargaBeli - margin;
                   return (
                     <tr key={order.id}>
-                      <td><span className="font-semibold text-[#166534] text-[12px]">{order.orderNumber}</span><p className="text-[10px] text-[#94a3b8]">{order.supplierName}</p></td>
+                      <td><span className="font-semibold text-[#166534] text-[12px]">{order.noKedatangan}</span></td>
+                      <td><span className="text-[12px] text-[#0f172a]">{order.noKendaraan}</span></td>
                       <td className="text-[12px] text-[#64748b]">{formatDate(order.orderDate)}</td>
                       <td className="text-[13px] text-[#0f172a] font-medium">{order.supplierName}</td>
                       <td className="text-right text-[13px] font-medium text-[#0f172a]">{formatVolume(order.totalVolume)} m³</td>
@@ -127,9 +129,13 @@ export default function Payables() {
         )}
       </div>
 
-      <Modal open={!!selectedOrder && !showPaymentModal} onClose={() => setSelectedOrder(null)} title={selectedOrder?.orderNumber || ''} subtitle={selectedOrder ? `Pembayaran ke ${selectedOrder?.supplierName}` : ''} size="lg">
+      <Modal open={!!selectedOrder && !showPaymentModal} onClose={() => setSelectedOrder(null)} title={selectedOrder?.noKedatangan || ''} subtitle={selectedOrder ? `No. Kendaraan: ${selectedOrder.noKendaraan} - Pembayaran ke ${selectedOrder?.supplierName}` : ''} size="lg">
         {selectedOrder && (
           <div className="space-y-5">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-[#f8fafc] rounded-lg p-3.5"><p className="text-[11px] text-[#64748b] mb-1">No. Kedatangan</p><p className="text-[13px] font-semibold text-[#0f172a]">{selectedOrder.noKedatangan}</p></div>
+              <div className="bg-[#f8fafc] rounded-lg p-3.5"><p className="text-[11px] text-[#64748b] mb-1">No. Kendaraan</p><p className="text-[13px] font-semibold text-[#0f172a]">{selectedOrder.noKendaraan}</p></div>
+            </div>
             <div className="bg-[#fef2f2] rounded-lg p-4 border border-[#fecaca] space-y-3">
               <div className="flex items-center justify-between"><p className="text-[11px] text-[#64748b]">Total Volume</p><p className="text-[13px] font-semibold text-[#0f172a]">{formatVolume(selectedOrder.totalVolume)} m³</p></div>
               <div className="flex items-center justify-between"><p className="text-[11px] text-[#64748b]">Total - PPH 22 (Harga Jual)</p><p className="text-[13px] font-medium text-[#0f172a]">{formatCurrency(calculateHargaBeli(selectedOrder))}</p></div>
@@ -141,7 +147,7 @@ export default function Payables() {
         )}
       </Modal>
 
-      <Modal open={showPaymentModal} onClose={() => { setShowPaymentModal(false); setSelectedOrder(null); }} title="Input Pembayaran ke Supplier" subtitle={selectedOrder ? `${selectedOrder.orderNumber} - ${selectedOrder.supplierName}` : ''} size="md">
+      <Modal open={showPaymentModal} onClose={() => { setShowPaymentModal(false); setSelectedOrder(null); }} title="Input Pembayaran ke Supplier" subtitle={selectedOrder ? `${selectedOrder.noKedatangan} - ${selectedOrder.supplierName}` : ''} size="md">
         {selectedOrder && (
           <div className="space-y-4">
             <div className="bg-[#fef2f2] rounded-lg p-4 border border-[#fecaca] space-y-2">
@@ -160,6 +166,15 @@ export default function Payables() {
               </select>
             </FormField>
             <FormField label="Referensi"><input type="text" className="input-field" value={paymentData.reference} onChange={(e) => setPaymentData({...paymentData, reference: e.target.value})} placeholder="TRF-BCA-001234" /></FormField>
+            <FormField label="Bukti Pembayaran" required>
+              <input type="file" accept="image/*,.pdf" className="input-field" onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  setPaymentData({...paymentData, notes: `Bukti: ${file.name}`});
+                }
+              }} />
+              <p className="text-[11px] text-[#94a3b8] mt-1">Upload gambar atau PDF bukti transfer</p>
+            </FormField>
             <div className="flex gap-2 pt-4">
               <button onClick={() => setShowPaymentModal(false)} className="btn btn-secondary flex-1">Batal</button>
               <button onClick={handleSavePayment} className="btn btn-primary flex-1">💾 Simpan</button>
