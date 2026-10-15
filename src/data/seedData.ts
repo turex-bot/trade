@@ -18,44 +18,33 @@
 
 import { Supplier, Company, WoodSpec, Price, Order, OrderItem, Delivery, Invoice, Payment } from './mockData';
 
-// Helper function untuk membuat OrderItem dengan diameter aktual per batang
+// Helper function untuk membuat OrderItem dengan logika baru
+// Input: Jumlah Batang (pcs) + Kubikasi (m³) → Harga Otomatis
 const createOrderItem = (
   id: string,
   woodSpecId: string,
   woodSpecName: string,
-  logDiameters: number[], // diameter aktual per batang dalam cm
-  logLengthCm: number, // panjang batang dalam cm (PENTING: dalam cm, bukan meter!)
-  buyPricePerLog: number,
-  sellPricePerLog: number,
-  buyPricePerM3: number,
-  sellPricePerM3: number
+  numberOfLogs: number, // jumlah batang (pcs)
+  volume: number, // total kubikasi dalam m³ (input dari user)
+  diameterRange: string, // range diameter dari master data
+  buyPricePerM3: number, // harga beli per m³
+  sellPricePerM3: number // harga jual per m³
 ): OrderItem => {
-  // Hitung volume per batang berdasarkan diameter aktual
-  // PENTING: logLengthCm sudah dalam cm, tidak perlu dikali 100 lagi!
-  const volumeM3 = logDiameters.reduce((total, diameter) => {
-    const diameterM = diameter / 100;
-    const lengthM = logLengthCm / 100;
-    const volumePerLogM3 = (Math.PI / 4) * (diameterM * diameterM) * lengthM;
-    return total + volumePerLogM3;
-  }, 0);
-  
-  const volumeDm3 = volumeM3 * 1000; // konversi ke dm³
+  // Harga otomatis: kubikasi × harga per m³
+  const totalBuyValue = volume * buyPricePerM3;
+  const totalSellValue = volume * sellPricePerM3;
   
   return {
     id,
     woodSpecId,
     woodSpecName,
-    numberOfLogs: logDiameters.length,
-    logDiameters,
-    logLength: logLengthCm,
-    volumeDm3: Math.round(volumeDm3 * 100) / 100,
-    volume: Math.round(volumeM3 * 1000) / 1000,
-    buyPricePerLog,
-    sellPricePerLog,
+    numberOfLogs,
+    volume,
+    diameterRange,
     buyPrice: buyPricePerM3,
     sellPrice: sellPricePerM3,
-    totalBuyValue: logDiameters.length * buyPricePerLog,
-    totalSellValue: logDiameters.length * sellPricePerLog,
+    totalBuyValue,
+    totalSellValue,
   };
 };
 
@@ -264,8 +253,8 @@ export function seedOrders(): Order[] {
       supplierId: '1', 
       supplierName: 'Depo Kayu Makmur', 
       status: 'paid', 
-      // PENTING: Panjang 400 cm = 4 meter
-      items: [createOrderItem('1', '1', 'Meranti 20-30cm Premium', generateDiameters(255, 20, 30), 400, 235200, 238140, 1200000, 1215000)],
+      // Logika baru: Input jumlah batang + kubikasi, harga otomatis
+      items: [createOrderItem('1', '1', 'Meranti Premium', 255, 50, '20-30 cm', 1200000, 1215000)],
       totalVolume: 50, 
       totalValue: 60750000, 
       notes: 'Pesanan rutin Januari' 
@@ -279,8 +268,8 @@ export function seedOrders(): Order[] {
       supplierId: '2', 
       supplierName: 'Depo Kayu Sejahtera', 
       status: 'invoiced', 
-      // PENTING: Panjang 400 cm = 4 meter
-      items: [createOrderItem('2', '3', 'Keruing 20-30cm Reguler', generateDiameters(179, 20, 30), 400, 186200, 189140, 950000, 965000)],
+      // Logika baru: Input jumlah batang + kubikasi, harga otomatis
+      items: [createOrderItem('2', '3', 'Keruing Reguler', 179, 35, '20-30 cm', 950000, 965000)],
       totalVolume: 35, 
       totalValue: 33775000, 
       notes: '' 

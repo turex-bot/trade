@@ -13,13 +13,7 @@ interface ModalProps {
 
 export function Modal({ open, onClose, title, subtitle, children, footer, size = 'md' }: ModalProps) {
   if (!open) return null;
-
-  const sizeClasses = {
-    sm: 'max-w-md',
-    md: 'max-w-lg',
-    lg: 'max-w-2xl',
-    xl: 'max-w-4xl',
-  };
+  const sizeClasses = { sm: 'max-w-md', md: 'max-w-lg', lg: 'max-w-2xl', xl: 'max-w-4xl' };
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -44,14 +38,7 @@ export function Modal({ open, onClose, title, subtitle, children, footer, size =
   );
 }
 
-// Page Header
-interface PageHeaderProps {
-  title: string;
-  subtitle?: string;
-  actions?: ReactNode;
-}
-
-export function PageHeader({ title, subtitle, actions }: PageHeaderProps) {
+export function PageHeader({ title, subtitle, actions }: { title: string; subtitle?: string; actions?: ReactNode }) {
   return (
     <div className="flex items-start justify-between mb-6">
       <div>
@@ -63,47 +50,7 @@ export function PageHeader({ title, subtitle, actions }: PageHeaderProps) {
   );
 }
 
-// Stat Card
-interface StatCardProps {
-  label: string;
-  value: string | number;
-  icon: ReactNode;
-  trend?: { value: string; positive: boolean };
-  accentColor?: string;
-}
-
-export function StatCard({ label, value, icon, trend, accentColor = '#166534' }: StatCardProps) {
-  return (
-    <div className="stat-card">
-      <div className="flex items-start justify-between">
-        <div className="min-w-0 flex-1">
-          <p className="text-[12px] font-medium text-[#64748b]">{label}</p>
-          <p className="text-[22px] font-bold text-[#0f172a] mt-1 tracking-tight leading-tight">{value}</p>
-          {trend && (
-            <div className="flex items-center gap-1 mt-2">
-              <span className={`text-[11px] font-semibold ${trend.positive ? 'text-[#15803d]' : 'text-[#dc2626]'}`}>
-                {trend.positive ? '↑' : '↓'} {trend.value}
-              </span>
-              <span className="text-[11px] text-[#94a3b8]">vs bulan lalu</span>
-            </div>
-          )}
-        </div>
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: `${accentColor}12` }}>
-          <div style={{ color: accentColor }}>{icon}</div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// Badge
-interface BadgeProps {
-  children: ReactNode;
-  variant?: 'green' | 'blue' | 'yellow' | 'orange' | 'red' | 'gray' | 'purple';
-  dot?: boolean;
-}
-
-export function Badge({ children, variant = 'gray', dot }: BadgeProps) {
+export function Badge({ children, variant = 'gray', dot }: { children: ReactNode; variant?: 'green' | 'blue' | 'yellow' | 'orange' | 'red' | 'gray' | 'purple'; dot?: boolean }) {
   return (
     <span className={`badge badge-${variant}`}>
       {dot && <span className={`w-1.5 h-1.5 rounded-full bg-current opacity-60`} />}
@@ -112,57 +59,19 @@ export function Badge({ children, variant = 'gray', dot }: BadgeProps) {
   );
 }
 
-// Empty State
-interface EmptyStateProps {
-  icon: ReactNode;
-  title: string;
-  description: string;
-  action?: ReactNode;
-}
-
-export function EmptyState({ icon, title, description, action }: EmptyStateProps) {
+export function FormField({ label, required, children }: { label: string; required?: boolean; children: ReactNode }) {
   return (
-    <div className="empty-state">
-      <div className="w-14 h-14 rounded-2xl bg-[#f1f5f9] flex items-center justify-center mb-4 text-[#94a3b8]">
-        {icon}
-      </div>
-      <h3 className="text-[14px] font-semibold text-[#0f172a]">{title}</h3>
-      <p className="text-[13px] text-[#64748b] mt-1 max-w-sm">{description}</p>
-      {action && <div className="mt-4">{action}</div>}
-    </div>
-  );
-}
-
-// Form Field
-interface FormFieldProps {
-  label: string;
-  required?: boolean;
-  hint?: string;
-  children: ReactNode;
-  className?: string;
-}
-
-export function FormField({ label, required, hint, children, className }: FormFieldProps) {
-  return (
-    <div className={className}>
+    <div>
       <label className="block text-[12px] font-medium text-[#334155] mb-1.5">
         {label}
         {required && <span className="text-[#dc2626] ml-0.5">*</span>}
       </label>
       {children}
-      {hint && <p className="text-[11px] text-[#94a3b8] mt-1">{hint}</p>}
     </div>
   );
 }
 
-// Tabs
-interface TabsProps {
-  tabs: { key: string; label: string; count?: number }[];
-  active: string;
-  onChange: (key: string) => void;
-}
-
-export function Tabs({ tabs, active, onChange }: TabsProps) {
+export function Tabs({ tabs, active, onChange }: { tabs: { key: string; label: string; count?: number }[]; active: string; onChange: (key: string) => void }) {
   return (
     <div className="flex items-center gap-0 border-b border-[#e2e8f0]">
       {tabs.map(tab => (

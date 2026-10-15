@@ -28,11 +28,11 @@ export interface WoodSpec {
   id: string;
   woodType: string;
   diameterRange: string;
-  diameterMin: number; // cm
-  diameterMax: number; // cm
-  avgDiameter: number; // cm - diameter rata-rata untuk kalkulasi
-  standardLength: number; // cm - panjang standar batang (PENTING: dalam cm, bukan meter!)
-  volumePerLog: number; // m³ per batang (dihitung dari diameter & panjang)
+  diameterMin: number;
+  diameterMax: number;
+  avgDiameter: number;
+  standardLength: number;
+  volumePerLog: number;
   grade: 'Reguler' | 'Premium';
   unit: string;
   notes: string;
@@ -42,18 +42,31 @@ export interface Price {
   id: string;
   woodSpecId: string;
   woodSpecName: string;
-  buyPrice: number; // harga beli per m³
-  buyPricePerLog: number; // harga beli per batang (otomatis)
-  traderMargin: number; // margin per m³
-  sellPrice: number; // harga jual per m³
-  sellPricePerLog: number; // harga jual per batang (otomatis)
+  buyPrice: number;
+  traderMargin: number;
+  sellPrice: number;
   effectiveDate: string;
   isActive: boolean;
+}
+
+export interface OrderItem {
+  id: string;
+  woodSpecId: string;
+  woodSpecName: string;
+  numberOfLogs: number;
+  volume: number;
+  diameterRange: string;
+  buyPrice: number;
+  sellPrice: number;
+  totalBuyValue: number;
+  totalSellValue: number;
 }
 
 export interface Order {
   id: string;
   orderNumber: string;
+  noKedatangan: string; // No Kedatangan
+  noKendaraan: string; // No Kendaraan
   orderDate: string;
   companyId: string;
   companyName: string;
@@ -63,53 +76,8 @@ export interface Order {
   items: OrderItem[];
   totalVolume: number;
   totalValue: number;
+  totalAfterPPH: number; // Total - PPH 22 (0.25%) - Total setelah dipotong pajak
   notes: string;
-}
-
-export interface OrderItem {
-  id: string;
-  woodSpecName: string;
-  woodSpecId: string;
-  numberOfLogs: number; // jumlah batang
-  logDiameters: number[]; // diameter aktual per batang dalam cm (misal: [21, 22, 23, 21, 22])
-  logLength: number; // panjang batang dalam meter
-  volumeDm3: number; // total volume dalam dm³ (hasil kalkulasi per batang)
-  volume: number; // total volume dalam m³ (volumeDm3 / 1000)
-  buyPricePerLog: number; // harga beli per batang
-  sellPricePerLog: number; // harga jual per batang
-  buyPrice: number; // harga beli per m³ (untuk referensi)
-  sellPrice: number; // harga jual per m³ (untuk referensi)
-  totalBuyValue: number; // numberOfLogs × buyPricePerLog
-  totalSellValue: number; // numberOfLogs × sellPricePerLog
-}
-
-export interface Delivery {
-  id: string;
-  doNumber: string;
-  orderId: string;
-  orderNumber: string;
-  deliveryDate: string;
-  vehiclePlate: string;
-  driverName: string;
-  actualVolume: number;
-  receiveDate: string | null;
-  status: 'pending' | 'in_transit' | 'received' | 'rejected';
-  receivedBy: string;
-}
-
-export interface Invoice {
-  id: string;
-  invoiceNumber: string;
-  deliveryId: string;
-  companyId: string;
-  companyName: string;
-  invoiceDate: string;
-  dueDate: string;
-  totalAmount: number;
-  paidAmount: number;
-  status: 'unpaid' | 'partial' | 'paid';
-  agingDays: number;
-  agingCategory: string;
 }
 
 export interface Payment {
@@ -122,49 +90,15 @@ export interface Payment {
   reference: string;
 }
 
-// Mock Data - Empty for testing
 export const suppliers: Supplier[] = [];
-
 export const companies: Company[] = [];
-
 export const woodSpecs: WoodSpec[] = [];
-
 export const prices: Price[] = [];
-
 export const orders: Order[] = [];
-
-export const deliveries: Delivery[] = [];
-
-export const invoices: Invoice[] = [];
-
 export const payments: Payment[] = [];
 
-// Dashboard data - Empty for testing
-export const dashboardSummary = {
-  totalReceivable: 0,
-  monthlyProfit: 0,
-  totalVolume: 0,
-  overdueInvoices: 0,
-};
-
-export const receivableByCompany: { name: string; amount: number; color: string }[] = [];
-
-export const volumeProfitTrend: { month: string; volume: number; profit: number }[] = [];
-
-export const agingSummary = [
-  { category: 'Belum Jatuh Tempo', count: 0, amount: 0, color: '#22c55e' },
-  { category: '1-30 hari', count: 0, amount: 0, color: '#eab308' },
-  { category: '31-60 hari', count: 0, amount: 0, color: '#f97316' },
-  { category: '>60 hari', count: 0, amount: 0, color: '#ef4444' },
-];
-
-// Helper functions
 export const formatCurrency = (amount: number): string => {
   return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount);
-};
-
-export const formatNumber = (num: number): string => {
-  return new Intl.NumberFormat('id-ID').format(num);
 };
 
 export const formatDate = (dateStr: string): string => {

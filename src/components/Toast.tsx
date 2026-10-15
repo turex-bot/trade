@@ -8,11 +8,9 @@ interface Toast {
   type: ToastType;
   title: string;
   message?: string;
-  duration?: number;
 }
 
 interface ToastContextType {
-  toast: (options: Omit<Toast, 'id'>) => void;
   success: (title: string, message?: string) => void;
   error: (title: string, message?: string) => void;
   warning: (title: string, message?: string) => void;
@@ -34,21 +32,17 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     setToasts(prev => prev.filter(t => t.id !== id));
   }, []);
 
-  const addToast = useCallback((options: Omit<Toast, 'id'>) => {
+  const addToast = useCallback((type: ToastType, title: string, message?: string) => {
     const id = Math.random().toString(36).slice(2);
-    const toast: Toast = { ...options, id };
-    setToasts(prev => [...prev, toast]);
-
-    const duration = options.duration || 4000;
-    setTimeout(() => removeToast(id), duration);
+    setToasts(prev => [...prev, { id, type, title, message }]);
+    setTimeout(() => removeToast(id), 4000);
   }, [removeToast]);
 
   const toastApi: ToastContextType = {
-    toast: addToast,
-    success: (title, message) => addToast({ type: 'success', title, message }),
-    error: (title, message) => addToast({ type: 'error', title, message, duration: 5000 }),
-    warning: (title, message) => addToast({ type: 'warning', title, message }),
-    info: (title, message) => addToast({ type: 'info', title, message }),
+    success: (title, message) => addToast('success', title, message),
+    error: (title, message) => addToast('error', title, message),
+    warning: (title, message) => addToast('warning', title, message),
+    info: (title, message) => addToast('info', title, message),
   };
 
   const getIcon = (type: ToastType) => {
@@ -72,24 +66,15 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={toastApi}>
       {children}
-      {/* Toast Container */}
       <div className="fixed top-4 right-4 z-[100] flex flex-col gap-2 max-w-sm">
         {toasts.map((toast) => (
-          <div
-            key={toast.id}
-            className={`${getBgColor(toast.type)} border rounded-lg p-3 shadow-lg animate-slide-in flex items-start gap-2.5`}
-          >
+          <div key={toast.id} className={`${getBgColor(toast.type)} border rounded-lg p-3 shadow-lg animate-slide-in flex items-start gap-2.5`}>
             <div className="mt-0.5 flex-shrink-0">{getIcon(toast.type)}</div>
             <div className="flex-1 min-w-0">
               <p className="text-[13px] font-semibold text-[#0f172a]">{toast.title}</p>
-              {toast.message && (
-                <p className="text-[12px] text-[#64748b] mt-0.5">{toast.message}</p>
-              )}
+              {toast.message && <p className="text-[12px] text-[#64748b] mt-0.5">{toast.message}</p>}
             </div>
-            <button
-              onClick={() => removeToast(toast.id)}
-              className="p-0.5 rounded hover:bg-black/5 text-[#94a3b8] flex-shrink-0"
-            >
+            <button onClick={() => removeToast(toast.id)} className="p-0.5 rounded hover:bg-black/5 text-[#94a3b8] flex-shrink-0">
               <X className="w-3.5 h-3.5" />
             </button>
           </div>
