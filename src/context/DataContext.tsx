@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Supplier, Company, WoodSpec, Price, Order, Payment, suppliers as initialSuppliers, companies as initialCompanies, woodSpecs as initialWoodSpecs, prices as initialPrices, orders as initialOrders, payments as initialPayments } from '../data/mockData';
 
 interface DataContextType {

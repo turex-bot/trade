@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Search, Edit2, Trash2, TrendingUp, AlertTriangle } from 'lucide-react';
 import { Price } from '../data/mockData';
 import { PageHeader, Modal, Badge, FormField } from '../components/ui';

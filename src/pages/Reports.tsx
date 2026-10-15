@@ -1,4 +1,3 @@
-import React from 'react';
 import { PageHeader } from '../components/ui';
 import { useData } from '../context/DataContext';
 import { formatCurrency } from '../data/mockData';

@@ -1,4 +1,3 @@
-import React from 'react';
 import { useData } from '../context/DataContext';
 import { PageHeader } from '../components/ui';
 import { TrendingUp, DollarSign, Package, FileText } from 'lucide-react';

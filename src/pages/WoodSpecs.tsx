@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Plus, Search, Edit2, TreePine } from 'lucide-react';
 import { WoodSpec } from '../data/mockData';
 import { PageHeader, Modal, Badge, FormField } from '../components/ui';

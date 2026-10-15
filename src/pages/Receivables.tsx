@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { AlertTriangle, TrendingUp, Calendar, Search, Eye, Package, CheckCircle2 } from 'lucide-react';
 import { PageHeader, Badge, Modal, FormField } from '../components/ui';
 import { useData } from '../context/DataContext';

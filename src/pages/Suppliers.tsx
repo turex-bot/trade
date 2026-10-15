@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Plus, Search, Edit2, Trash2, Phone, MapPin } from 'lucide-react';
 import { Supplier } from '../data/mockData';
 import { PageHeader, Modal, Badge, FormField } from '../components/ui';

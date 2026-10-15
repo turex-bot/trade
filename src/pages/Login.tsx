@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { TreePine, Eye, EyeOff } from 'lucide-react';
 
 export default function Login({ onLogin }: { onLogin: () => void }) {
