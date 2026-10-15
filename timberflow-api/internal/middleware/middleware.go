@@ -2,15 +2,36 @@ package middleware
 
 import (
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 )
 
+// Fix Issue #8: CORS whitelist for production security
 func CORSMiddleware() gin.HandlerFunc {
+	// Get allowed origins from environment variable
+	allowedOrigins := getAllowedOrigins()
+
 	return func(c *gin.Context) {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		origin := c.GetHeader("Origin")
+
+		// Check if origin is allowed
+		isAllowed := false
+		for _, allowed := range allowedOrigins {
+			if origin == allowed {
+				isAllowed = true
+				c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
+				break
+			}
+		}
+
+		// In development, allow all origins
+		if os.Getenv("ENVIRONMENT") == "development" {
+			c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		}
+
 		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
 		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
 		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, DELETE")
@@ -22,6 +43,25 @@ func CORSMiddleware() gin.HandlerFunc {
 
 		c.Next()
 	}
+}
+
+// getAllowedOrigins returns list of allowed origins
+func getAllowedOrigins() []string {
+	// Default origins for development
+	origins := []string{
+		"http://localhost:5173",
+		"http://localhost:3000",
+		"http://127.0.0.1:5173",
+	}
+
+	// Add production origins from environment variable
+	if prodOrigins := os.Getenv("CORS_ORIGINS"); prodOrigins != "" {
+		for _, origin := range strings.Split(prodOrigins, ",") {
+			origins = append(origins, strings.TrimSpace(origin))
+		}
+	}
+
+	return origins
 }
 
 func JWTAuthMiddleware(jwtSecret string) gin.HandlerFunc {

@@ -4,6 +4,7 @@ import { Supplier } from '../data/mockData';
 import { PageHeader, Modal, Badge, FormField } from '../components/ui';
 import { useData } from '../context/DataContext';
 import { useToast } from '../components/Toast';
+import { sanitizeInput, sanitizeEmail, sanitizePhone, isValidEmail, isValidPhone } from '../utils/sanitize';
 
 export default function Suppliers() {
   const { suppliers, addSupplier, updateSupplier } = useData();
@@ -29,11 +30,36 @@ export default function Suppliers() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Fix Issue #4: Input validation and sanitization
+    if (!isValidEmail(formData.email) && formData.email) {
+      toast.error('Format email tidak valid');
+      return;
+    }
+    
+    if (!isValidPhone(formData.phone)) {
+      toast.error('Format nomor telepon tidak valid');
+      return;
+    }
+    
+    // Sanitize inputs
+    const sanitizedData = {
+      ...formData,
+      name: sanitizeInput(formData.name),
+      ownerName: sanitizeInput(formData.ownerName),
+      phone: sanitizePhone(formData.phone),
+      email: sanitizeEmail(formData.email),
+      address: sanitizeInput(formData.address),
+      bankAccount: sanitizeInput(formData.bankAccount),
+      bankName: sanitizeInput(formData.bankName),
+      npwp: sanitizeInput(formData.npwp),
+    };
+    
     if (editingSupplier) {
-      updateSupplier(editingSupplier.id, formData);
+      updateSupplier(editingSupplier.id, sanitizedData);
       toast.success('Supplier berhasil diupdate');
     } else {
-      addSupplier(formData);
+      addSupplier(sanitizedData);
       toast.success('Supplier berhasil ditambahkan');
     }
     setShowForm(false);

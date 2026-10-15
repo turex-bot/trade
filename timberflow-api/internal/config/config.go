@@ -1,6 +1,7 @@
 package config
 
 import (
+	"log"
 	"os"
 	"strconv"
 )
@@ -15,10 +16,16 @@ type Config struct {
 	LogLevel      string
 }
 
+// Fix Issue #3: Require JWT_SECRET environment variable
 func LoadConfig() *Config {
+	jwtSecret := os.Getenv("JWT_SECRET")
+	if jwtSecret == "" {
+		log.Fatal("❌ JWT_SECRET environment variable is required for security")
+	}
+
 	return &Config{
 		DatabaseURL:   getEnv("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/timberflow?sslmode=disable"),
-		JWTSecret:     getEnv("JWT_SECRET", "your-secret-key-change-in-production"),
+		JWTSecret:     jwtSecret,
 		JWTExpiration: getEnvAsInt("JWT_EXPIRATION", 24),
 		Port:          getEnv("PORT", "8080"),
 		Environment:   getEnv("ENVIRONMENT", "development"),

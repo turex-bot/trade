@@ -49,24 +49,27 @@ func main() {
 	authHandler := handlers.NewAuthHandler(db, cfg.JWTSecret)
 	supplierHandler := handlers.NewSupplierHandler(db)
 	companyHandler := handlers.NewCompanyHandler(db)
-	woodSpecHandler := handlers.NewWoodSpecHandler(db)
-	priceHandler := handlers.NewPriceHandler(db)
-	orderHandler := handlers.NewOrderHandler(db)
-	deliveryHandler := handlers.NewDeliveryHandler(db)
-	invoiceHandler := handlers.NewInvoiceHandler(db)
-	paymentHandler := handlers.NewPaymentHandler(db)
+	healthHandler := handlers.NewHealthHandler(db)
 
 	// Initialize Gin router
 	router := gin.Default()
 
-	// CORS middleware
+	// Fix Issue #8: CORS middleware with whitelist
 	router.Use(middleware.CORSMiddleware())
+
+	// Fix Issue #5: Global rate limiting
+	router.Use(middleware.NormalRateLimitMiddleware())
+
+	// Fix Issue #16: Health check endpoint (no auth required)
+	router.GET("/health", healthHandler.HealthCheck)
+	router.GET("/api/health", healthHandler.HealthCheck)
 
 	// API v1 routes
 	v1 := router.Group("/api/v1")
 	{
-		// Public routes
+		// Public routes with strict rate limiting
 		auth := v1.Group("/auth")
+		auth.Use(middleware.StrictRateLimitMiddleware())
 		{
 			auth.POST("/login", authHandler.Login)
 			auth.POST("/register", authHandler.Register)
