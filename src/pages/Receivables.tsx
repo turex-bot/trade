@@ -19,7 +19,8 @@ export default function Receivables() {
   const filteredOrders = receivableOrders.filter(o => o.orderNumber.toLowerCase().includes(searchQuery.toLowerCase()) || o.companyName.toLowerCase().includes(searchQuery.toLowerCase()));
 
   const calculateTotalReceivable = (order: any) => {
-    return order.totalWithPPH || (order.totalValue * 1.0025);
+    // Total Tagih = Total - PPH 22 (PPH dipotong dari total)
+    return order.totalAfterPPH || (order.totalValue * 0.9975);
   };
   
   const totalReceivable = filteredOrders.filter(o => o.status === 'confirmed' || o.status === 'invoiced').reduce((sum, o) => sum + calculateTotalReceivable(o), 0);
@@ -125,7 +126,7 @@ export default function Receivables() {
           <div className="space-y-5">
             <div className="bg-[#f0fdf4] rounded-lg p-4 border border-[#dcfce7] space-y-3">
               <div className="flex items-center justify-between"><p className="text-[11px] text-[#64748b]">Total Volume</p><p className="text-[13px] font-semibold text-[#0f172a]">{formatVolume(selectedOrder.totalVolume)} m³</p></div>
-              <div className="flex items-center justify-between"><p className="text-[11px] text-[#64748b]">Total + PPH 22 (Tagihan)</p><p className="text-[13px] font-medium text-[#0f172a]">{formatCurrency(calculateTotalReceivable(selectedOrder))}</p></div>
+              <div className="flex items-center justify-between"><p className="text-[11px] text-[#64748b]">Total - PPH 22 (Tagihan)</p><p className="text-[13px] font-medium text-[#0f172a]">{formatCurrency(calculateTotalReceivable(selectedOrder))}</p></div>
               <div className="flex items-center justify-between"><p className="text-[11px] text-[#64748b]">Profit Anda (Margin = {formatVolume(selectedOrder.totalVolume)} m³ × Rp15)</p><p className="text-[13px] font-medium text-[#f59e0b]">{formatCurrency(selectedOrder.totalVolume * TRADER_MARGIN_PER_M3)}</p></div>
               <div className="pt-3 border-t border-[#dcfce7] flex items-center justify-between"><p className="text-[12px] font-semibold text-[#166534]">Total Diterima dari Perusahaan</p><p className="text-[18px] font-bold text-[#166534]">{formatCurrency(calculateTotalReceivable(selectedOrder))}</p></div>
             </div>
@@ -138,7 +139,7 @@ export default function Receivables() {
         {selectedOrder && (
           <div className="space-y-4">
             <div className="bg-[#f0fdf4] rounded-lg p-4 border border-[#dcfce7] space-y-2">
-              <div className="flex items-center justify-between text-[12px]"><span className="text-[#64748b]">Total + PPH 22:</span><span className="text-[#0f172a]">{formatCurrency(calculateTotalReceivable(selectedOrder))}</span></div>
+              <div className="flex items-center justify-between text-[12px]"><span className="text-[#64748b]">Total - PPH 22:</span><span className="text-[#0f172a]">{formatCurrency(calculateTotalReceivable(selectedOrder))}</span></div>
               <div className="flex items-center justify-between text-[12px]"><span className="text-[#64748b]">Profit Anda:</span><span className="text-[#f59e0b]">{formatCurrency(selectedOrder.totalVolume * TRADER_MARGIN_PER_M3)}</span></div>
               <div className="pt-2 border-t border-[#dcfce7] flex items-center justify-between"><span className="text-[13px] font-semibold text-[#166534]">Diterima dari Perusahaan:</span><span className="text-[20px] font-bold text-[#166534]">{formatCurrency(calculateTotalReceivable(selectedOrder))}</span></div>
             </div>

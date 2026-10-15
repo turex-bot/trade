@@ -19,12 +19,13 @@ export default function Payables() {
   const filteredOrders = payableOrders.filter(o => o.orderNumber.toLowerCase().includes(searchQuery.toLowerCase()) || o.supplierName.toLowerCase().includes(searchQuery.toLowerCase()));
 
   const calculateTotalPayable = (order: any) => {
-    const hargaBeli = order.totalWithPPH || (order.totalValue * 1.0025);
+    // Harga Beli = Total - PPH 22 (PPH dipotong dari total)
+    const hargaBeli = order.totalAfterPPH || (order.totalValue * 0.9975);
     const margin = order.totalVolume * TRADER_MARGIN_PER_M3;
     return hargaBeli - margin;
   };
   
-  const calculateHargaBeli = (order: any) => order.totalWithPPH || (order.totalValue * 1.0025);
+  const calculateHargaBeli = (order: any) => order.totalAfterPPH || (order.totalValue * 0.9975);
   
   const totalPayable = filteredOrders.filter(o => o.status !== 'paid').reduce((sum, o) => sum + calculateTotalPayable(o), 0);
   const totalPaid = filteredOrders.filter(o => o.status === 'paid').reduce((sum, o) => sum + calculateTotalPayable(o), 0);
@@ -131,7 +132,7 @@ export default function Payables() {
           <div className="space-y-5">
             <div className="bg-[#fef2f2] rounded-lg p-4 border border-[#fecaca] space-y-3">
               <div className="flex items-center justify-between"><p className="text-[11px] text-[#64748b]">Total Volume</p><p className="text-[13px] font-semibold text-[#0f172a]">{formatVolume(selectedOrder.totalVolume)} m³</p></div>
-              <div className="flex items-center justify-between"><p className="text-[11px] text-[#64748b]">Total + PPH 22 (Harga Beli)</p><p className="text-[13px] font-medium text-[#0f172a]">{formatCurrency(calculateHargaBeli(selectedOrder))}</p></div>
+              <div className="flex items-center justify-between"><p className="text-[11px] text-[#64748b]">Total - PPH 22 (Harga Beli)</p><p className="text-[13px] font-medium text-[#0f172a]">{formatCurrency(calculateHargaBeli(selectedOrder))}</p></div>
               <div className="flex items-center justify-between"><p className="text-[11px] text-[#64748b]">Margin Trader ({formatVolume(selectedOrder.totalVolume)} m³ × Rp15)</p><p className="text-[13px] font-medium text-[#f59e0b]">- {formatCurrency(selectedOrder.totalVolume * TRADER_MARGIN_PER_M3)}</p></div>
               <div className="pt-3 border-t border-[#fecaca] flex items-center justify-between"><p className="text-[12px] font-semibold text-[#dc2626]">Total Bayar ke Supplier</p><p className="text-[18px] font-bold text-[#dc2626]">{formatCurrency(calculateTotalPayable(selectedOrder))}</p></div>
             </div>
@@ -144,7 +145,7 @@ export default function Payables() {
         {selectedOrder && (
           <div className="space-y-4">
             <div className="bg-[#fef2f2] rounded-lg p-4 border border-[#fecaca] space-y-2">
-              <div className="flex items-center justify-between text-[12px]"><span className="text-[#64748b]">Total + PPH 22 (Harga Beli):</span><span className="text-[#0f172a]">{formatCurrency(calculateHargaBeli(selectedOrder))}</span></div>
+              <div className="flex items-center justify-between text-[12px]"><span className="text-[#64748b]">Total - PPH 22 (Harga Beli):</span><span className="text-[#0f172a]">{formatCurrency(calculateHargaBeli(selectedOrder))}</span></div>
               <div className="flex items-center justify-between text-[12px]"><span className="text-[#64748b]">Margin Trader:</span><span className="text-[#f59e0b]">- {formatCurrency(selectedOrder.totalVolume * TRADER_MARGIN_PER_M3)}</span></div>
               <div className="pt-2 border-t border-[#fecaca] flex items-center justify-between"><span className="text-[13px] font-semibold text-[#dc2626]">Bayar ke Supplier:</span><span className="text-[20px] font-bold text-[#dc2626]">{formatCurrency(calculateTotalPayable(selectedOrder))}</span></div>
             </div>

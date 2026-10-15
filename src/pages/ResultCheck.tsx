@@ -73,7 +73,7 @@ export default function ResultCheck() {
                   <th className="text-right">Total Kubikasi</th>
                   <th className="text-right">Nilai</th>
                   <th className="text-right">PPH 22</th>
-                  <th className="text-right">Total + PPH 22</th>
+                  <th className="text-right">Total - PPH 22</th>
                   <th className="text-center">Status</th>
                   <th className="text-center">Aksi</th>
                 </tr>
@@ -90,7 +90,7 @@ export default function ResultCheck() {
                     <td className="text-right text-[13px] font-medium text-[#0f172a]">{order.totalVolume} m³</td>
                     <td className="text-right text-[13px] font-medium text-[#0f172a]">{formatCurrency(order.totalValue)}</td>
                     <td className="text-right text-[13px] font-medium text-[#166534]">{formatCurrency(order.totalValue * 0.0025)}</td>
-                    <td className="text-right text-[13px] font-bold text-[#166534]">{formatCurrency(order.totalValue * 1.0025)}</td>
+                    <td className="text-right text-[13px] font-bold text-[#166534]">{formatCurrency(order.totalValue * 0.9975)}</td>
                     <td className="text-center">{getStatusBadge(order.status)}</td>
                     <td className="text-center">
                       <div className="flex items-center justify-center gap-1">
@@ -126,7 +126,7 @@ export default function ResultCheck() {
                 <div><p className="text-[11px] text-[#64748b]">Total Kubikasi</p><p className="text-[15px] font-bold text-[#166534]">{selectedOrder.totalVolume} m³</p></div>
                 <div><p className="text-[11px] text-[#64748b]">Total Nilai</p><p className="text-[15px] font-bold text-[#166534]">{formatCurrency(selectedOrder.totalValue)}</p></div>
                 <div><p className="text-[11px] text-[#64748b]">PPH 22 (0.25%)</p><p className="text-[15px] font-bold text-[#166534]">{formatCurrency(selectedOrder.totalValue * 0.0025)}</p></div>
-                <div className="text-right"><p className="text-[11px] text-[#64748b]">Total + PPH 22</p><p className="text-[15px] font-bold text-[#166534]">{formatCurrency(selectedOrder.totalValue * 1.0025)}</p></div>
+                <div className="text-right"><p className="text-[11px] text-[#64748b]">Total - PPH 22</p><p className="text-[15px] font-bold text-[#166534]">{formatCurrency(selectedOrder.totalValue * 0.9975)}</p></div>
               </div>
             </div>
           </div>
@@ -181,7 +181,7 @@ function ResultCheckModal({ open, onClose, companies, suppliers, woodSpecs, pric
   }, { totalLogs: 0, totalVolume: 0, totalSellValue: 0, totalBuyValue: 0 });
 
   const pph22 = totals.totalSellValue * 0.0025;
-  const totalWithPPH = totals.totalSellValue * 1.0025;
+  const totalAfterPPH = totals.totalSellValue * 0.9975;
 
   const handleAddItem = () => setCheckItems([...checkItems, { woodSpecId: '', numberOfLogs: 0, volume: 0 }]);
   const handleRemoveItem = (index: number) => setCheckItems(checkItems.filter((_, i) => i !== index));
@@ -228,7 +228,7 @@ function ResultCheckModal({ open, onClose, companies, suppliers, woodSpecs, pric
       items,
       totalVolume: totals.totalVolume,
       totalValue: totals.totalSellValue,
-      totalWithPPH: totals.totalSellValue * 1.0025,
+      totalAfterPPH: totals.totalSellValue * 0.9975,
       notes,
     });
 
@@ -323,7 +323,7 @@ function ResultCheckModal({ open, onClose, companies, suppliers, woodSpecs, pric
               <div className="bg-white rounded-lg p-3 border border-[#dcfce7]"><p className="text-[11px] text-[#64748b]">Total Kubikasi</p><p className="text-[16px] font-bold text-[#166534]">{totals.totalVolume} m³</p></div>
               <div className="bg-white rounded-lg p-3 border border-[#dcfce7]"><p className="text-[11px] text-[#64748b]">Total Nilai</p><p className="text-[16px] font-bold text-[#166534]">{formatCurrency(totals.totalSellValue)}</p></div>
               <div className="bg-white rounded-lg p-3 border border-[#dcfce7]"><p className="text-[11px] text-[#64748b]">PPH 22 (0.25%)</p><p className="text-[16px] font-bold text-[#166534]">{formatCurrency(pph22)}</p></div>
-              <div className="bg-white rounded-lg p-3 border border-[#dcfce7]"><p className="text-[11px] text-[#64748b]">Total + PPH 22</p><p className="text-[16px] font-bold text-[#166534]">{formatCurrency(totalWithPPH)}</p></div>
+              <div className="bg-white rounded-lg p-3 border border-[#dcfce7]"><p className="text-[11px] text-[#64748b]">Total - PPH 22</p><p className="text-[16px] font-bold text-[#166534]">{formatCurrency(totalAfterPPH)}</p></div>
             </div>
           </div>
         )}

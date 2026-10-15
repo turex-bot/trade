@@ -74,7 +74,7 @@ export interface Order {
   items: OrderItem[];
   totalVolume: number;
   totalValue: number;
-  totalWithPPH: number;
+  totalAfterPPH: number; // Total - PPH 22 (0.25%) - Total setelah dipotong pajak
   notes: string;
 }
 
