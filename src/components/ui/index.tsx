@@ -59,7 +59,7 @@ export function Badge({ children, variant = 'gray', dot }: { children: ReactNode
   );
 }
 
-export function FormField({ label, required, children }: { label: string; required?: boolean; children: ReactNode }) {
+export function FormField({ label, required, hint, children }: { label: string; required?: boolean; hint?: string; children: ReactNode }) {
   return (
     <div>
       <label className="block text-[12px] font-medium text-[#334155] mb-1.5">
@@ -67,6 +67,7 @@ export function FormField({ label, required, children }: { label: string; requir
         {required && <span className="text-[#dc2626] ml-0.5">*</span>}
       </label>
       {children}
+      {hint && <p className="text-[11px] text-[#94a3b8] mt-1">{hint}</p>}
     </div>
   );
 }

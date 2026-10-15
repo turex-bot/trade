@@ -1,7 +1,10 @@
 package utils
 
 import (
+	"net/http"
+
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 )
 
 type Response struct {
@@ -25,9 +28,20 @@ func ErrorResponse(c *gin.Context, code int, message string) {
 	})
 }
 
-func ValidationErrorResponse(c *gin.Context, errors map[string]string) {
-	c.JSON(400, Response{
-		Code:    400,
+func ValidationErrorResponse(c *gin.Context, err error) {
+	var errors []map[string]string
+	if validationErrors, ok := err.(validator.ValidationErrors); ok {
+		for _, e := range validationErrors {
+			errors = append(errors, map[string]string{
+				"field": e.Field(),
+				"tag":   e.Tag(),
+				"value": e.Param(),
+			})
+		}
+	}
+
+	c.JSON(http.StatusBadRequest, Response{
+		Code:    http.StatusBadRequest,
 		Message: "Validation failed",
 		Data:    errors,
 	})

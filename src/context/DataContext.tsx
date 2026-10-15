@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { v4 as uuidv4 } from 'uuid';
 import { Supplier, Company, WoodSpec, Price, Order, Payment, suppliers as initialSuppliers, companies as initialCompanies, woodSpecs as initialWoodSpecs, prices as initialPrices, orders as initialOrders, payments as initialPayments } from '../data/mockData';
 
 interface DataContextType {
@@ -28,11 +29,12 @@ export function useData() {
   return context;
 }
 
-const generateId = () => Math.random().toString(36).substr(2, 9);
+// Fix Issue #1: Use secure UUID instead of Math.random()
+const generateId = () => uuidv4();
 const generateOrderNumber = () => {
   const date = new Date();
   const yearMonth = `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}`;
-  return `HC-${yearMonth}-${String(Date.now()).slice(-4)}`;
+  return `HC-${yearMonth}-${uuidv4().slice(-4)}`;
 };
 
 export function DataProvider({ children }: { children: ReactNode }) {

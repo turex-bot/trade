@@ -1,4 +1,4 @@
-module github.com/yourusername/timberflow-api
+module timberflow-api
 
 go 1.21
 

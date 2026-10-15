@@ -174,23 +174,77 @@ CREATE TABLE IF NOT EXISTS payments (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Indexes for performance
+-- Fix Issue #15: Comprehensive indexes for performance optimization
+
+-- Users indexes
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_users_deleted_at ON users(deleted_at);
+CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
+CREATE INDEX IF NOT EXISTS idx_users_is_active ON users(is_active);
+
+-- Suppliers indexes
+CREATE INDEX IF NOT EXISTS idx_suppliers_name ON suppliers(name);
+CREATE INDEX IF NOT EXISTS idx_suppliers_status ON suppliers(status);
 CREATE INDEX IF NOT EXISTS idx_suppliers_deleted_at ON suppliers(deleted_at);
+
+-- Companies indexes
+CREATE INDEX IF NOT EXISTS idx_companies_name ON companies(name);
+CREATE INDEX IF NOT EXISTS idx_companies_status ON companies(status);
+CREATE INDEX IF NOT EXISTS idx_companies_risk_rating ON companies(risk_rating);
 CREATE INDEX IF NOT EXISTS idx_companies_deleted_at ON companies(deleted_at);
+
+-- Wood specs indexes
+CREATE INDEX IF NOT EXISTS idx_wood_specs_wood_type ON wood_specs(wood_type);
+CREATE INDEX IF NOT EXISTS idx_wood_specs_grade ON wood_specs(grade);
 CREATE INDEX IF NOT EXISTS idx_wood_specs_deleted_at ON wood_specs(deleted_at);
+
+-- Prices indexes
+CREATE INDEX IF NOT EXISTS idx_prices_wood_spec_id ON prices(wood_spec_id);
+CREATE INDEX IF NOT EXISTS idx_prices_effective_date ON prices(effective_date);
+CREATE INDEX IF NOT EXISTS idx_prices_is_active ON prices(is_active);
 CREATE INDEX IF NOT EXISTS idx_prices_deleted_at ON prices(deleted_at);
-CREATE INDEX IF NOT EXISTS idx_orders_deleted_at ON orders(deleted_at);
-CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
+
+-- Orders indexes (critical for performance)
+CREATE INDEX IF NOT EXISTS idx_orders_order_number ON orders(order_number);
+CREATE INDEX IF NOT EXISTS idx_orders_order_date ON orders(order_date);
 CREATE INDEX IF NOT EXISTS idx_orders_company_id ON orders(company_id);
+CREATE INDEX IF NOT EXISTS idx_orders_supplier_id ON orders(supplier_id);
+CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
+CREATE INDEX IF NOT EXISTS idx_orders_deleted_at ON orders(deleted_at);
+
+-- Composite indexes for common queries
+CREATE INDEX IF NOT EXISTS idx_orders_company_status ON orders(company_id, status);
+CREATE INDEX IF NOT EXISTS idx_orders_supplier_status ON orders(supplier_id, status);
+CREATE INDEX IF NOT EXISTS idx_orders_date_status ON orders(order_date, status);
+
+-- Order items indexes
 CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items(order_id);
+CREATE INDEX IF NOT EXISTS idx_order_items_wood_spec_id ON order_items(wood_spec_id);
+
+-- Deliveries indexes
+CREATE INDEX IF NOT EXISTS idx_deliveries_do_number ON deliveries(do_number);
 CREATE INDEX IF NOT EXISTS idx_deliveries_order_id ON deliveries(order_id);
 CREATE INDEX IF NOT EXISTS idx_deliveries_status ON deliveries(status);
+CREATE INDEX IF NOT EXISTS idx_deliveries_delivery_date ON deliveries(delivery_date);
+CREATE INDEX IF NOT EXISTS idx_deliveries_deleted_at ON deliveries(deleted_at);
+
+-- Invoices indexes
+CREATE INDEX IF NOT EXISTS idx_invoices_invoice_number ON invoices(invoice_number);
 CREATE INDEX IF NOT EXISTS idx_invoices_order_id ON invoices(order_id);
+CREATE INDEX IF NOT EXISTS idx_invoices_company_id ON invoices(company_id);
 CREATE INDEX IF NOT EXISTS idx_invoices_status ON invoices(status);
+CREATE INDEX IF NOT EXISTS idx_invoices_invoice_date ON invoices(invoice_date);
 CREATE INDEX IF NOT EXISTS idx_invoices_due_date ON invoices(due_date);
+CREATE INDEX IF NOT EXISTS idx_invoices_deleted_at ON invoices(deleted_at);
+
+-- Composite indexes for invoice queries
+CREATE INDEX IF NOT EXISTS idx_invoices_company_status ON invoices(company_id, status);
+CREATE INDEX IF NOT EXISTS idx_invoices_due_status ON invoices(due_date, status);
+
+-- Payments indexes
 CREATE INDEX IF NOT EXISTS idx_payments_invoice_id ON payments(invoice_id);
+CREATE INDEX IF NOT EXISTS idx_payments_payment_date ON payments(payment_date);
+CREATE INDEX IF NOT EXISTS idx_payments_method ON payments(method);
 
 -- Seed Admin user (password: admin123)
 INSERT INTO users (email, password_hash, full_name, role, is_active)

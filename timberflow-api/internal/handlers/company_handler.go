@@ -4,33 +4,37 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/yourusername/timberflow-api/internal/models"
-	"github.com/yourusername/timberflow-api/internal/utils"
-	"gorm.io/gorm"
+	"timberflow-api/internal/dtos"
+	"timberflow-api/internal/services"
+	"timberflow-api/internal/utils"
 )
 
 type CompanyHandler struct {
-	db *gorm.DB
+	service services.CompanyService
 }
 
-func NewCompanyHandler(db *gorm.DB) *CompanyHandler {
-	return &CompanyHandler{db: db}
+func NewCompanyHandler(service services.CompanyService) *CompanyHandler {
+	return &CompanyHandler{service: service}
 }
 
 func (h *CompanyHandler) GetAll(c *gin.Context) {
-	var companies []models.Company
-	if err := h.db.Find(&companies).Error; err != nil {
+	params := utils.GetPaginationParams(c)
+
+	companies, total, err := h.service.GetAll(params.Page, params.Limit)
+	if err != nil {
 		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to fetch companies")
 		return
 	}
 
-	utils.SuccessResponse(c, http.StatusOK, "Companies retrieved successfully", companies)
+	response := utils.NewPaginationResponse(companies, params, total)
+	utils.SuccessResponse(c, http.StatusOK, "Companies retrieved successfully", response)
 }
 
 func (h *CompanyHandler) GetByID(c *gin.Context) {
 	id := c.Param("id")
-	var company models.Company
-	if err := h.db.First(&company, "id = ?", id).Error; err != nil {
+
+	company, err := h.service.GetByID(id)
+	if err != nil {
 		utils.ErrorResponse(c, http.StatusNotFound, "Company not found")
 		return
 	}
@@ -39,14 +43,15 @@ func (h *CompanyHandler) GetByID(c *gin.Context) {
 }
 
 func (h *CompanyHandler) Create(c *gin.Context) {
-	var company models.Company
-	if err := c.ShouldBindJSON(&company); err != nil {
-		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid request body")
+	var req dtos.CreateCompanyRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.ValidationErrorResponse(c, err)
 		return
 	}
 
-	if err := h.db.Create(&company).Error; err != nil {
-		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to create company")
+	company, err := h.service.Create(req)
+	if err != nil {
+		utils.ErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -55,20 +60,16 @@ func (h *CompanyHandler) Create(c *gin.Context) {
 
 func (h *CompanyHandler) Update(c *gin.Context) {
 	id := c.Param("id")
-	var company models.Company
-	if err := h.db.First(&company, "id = ?", id).Error; err != nil {
-		utils.ErrorResponse(c, http.StatusNotFound, "Company not found")
+
+	var req dtos.UpdateCompanyRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.ValidationErrorResponse(c, err)
 		return
 	}
 
-	var updateData models.Company
-	if err := c.ShouldBindJSON(&updateData); err != nil {
-		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid request body")
-		return
-	}
-
-	if err := h.db.Model(&company).Updates(updateData).Error; err != nil {
-		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to update company")
+	company, err := h.service.Update(id, req)
+	if err != nil {
+		utils.ErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -77,13 +78,8 @@ func (h *CompanyHandler) Update(c *gin.Context) {
 
 func (h *CompanyHandler) Delete(c *gin.Context) {
 	id := c.Param("id")
-	var company models.Company
-	if err := h.db.First(&company, "id = ?", id).Error; err != nil {
-		utils.ErrorResponse(c, http.StatusNotFound, "Company not found")
-		return
-	}
 
-	if err := h.db.Delete(&company).Error; err != nil {
+	if err := h.service.Delete(id); err != nil {
 		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to delete company")
 		return
 	}
