@@ -6,20 +6,16 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// Fix Issue #7: Pagination helper for list endpoints
-
 type PaginationParams struct {
 	Page   int `json:"page"`
 	Limit  int `json:"limit"`
 	Offset int `json:"-"`
 }
 
-// GetPaginationParams extracts pagination parameters from request
 func GetPaginationParams(c *gin.Context) PaginationParams {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
 
-	// Validate and set defaults
 	if page < 1 {
 		page = 1
 	}
@@ -36,7 +32,6 @@ func GetPaginationParams(c *gin.Context) PaginationParams {
 	}
 }
 
-// PaginationResponse represents paginated response
 type PaginationResponse struct {
 	Data       interface{} `json:"data"`
 	Page       int         `json:"page"`
@@ -47,7 +42,6 @@ type PaginationResponse struct {
 	HasPrev    bool        `json:"has_prev"`
 }
 
-// NewPaginationResponse creates a new pagination response
 func NewPaginationResponse(data interface{}, params PaginationParams, total int64) PaginationResponse {
 	totalPages := int(total) / params.Limit
 	if int(total)%params.Limit > 0 {

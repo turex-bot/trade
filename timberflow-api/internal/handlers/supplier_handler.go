@@ -4,33 +4,37 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/yourusername/timberflow-api/internal/models"
-	"github.com/yourusername/timberflow-api/internal/utils"
-	"gorm.io/gorm"
+	"timberflow-api/internal/dtos"
+	"timberflow-api/internal/services"
+	"timberflow-api/internal/utils"
 )
 
 type SupplierHandler struct {
-	db *gorm.DB
+	service services.SupplierService
 }
 
-func NewSupplierHandler(db *gorm.DB) *SupplierHandler {
-	return &SupplierHandler{db: db}
+func NewSupplierHandler(service services.SupplierService) *SupplierHandler {
+	return &SupplierHandler{service: service}
 }
 
 func (h *SupplierHandler) GetAll(c *gin.Context) {
-	var suppliers []models.Supplier
-	if err := h.db.Find(&suppliers).Error; err != nil {
+	params := utils.GetPaginationParams(c)
+
+	suppliers, total, err := h.service.GetAll(params.Page, params.Limit)
+	if err != nil {
 		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to fetch suppliers")
 		return
 	}
 
-	utils.SuccessResponse(c, http.StatusOK, "Suppliers retrieved successfully", suppliers)
+	response := utils.NewPaginationResponse(suppliers, params, total)
+	utils.SuccessResponse(c, http.StatusOK, "Suppliers retrieved successfully", response)
 }
 
 func (h *SupplierHandler) GetByID(c *gin.Context) {
 	id := c.Param("id")
-	var supplier models.Supplier
-	if err := h.db.First(&supplier, "id = ?", id).Error; err != nil {
+
+	supplier, err := h.service.GetByID(id)
+	if err != nil {
 		utils.ErrorResponse(c, http.StatusNotFound, "Supplier not found")
 		return
 	}
@@ -39,14 +43,19 @@ func (h *SupplierHandler) GetByID(c *gin.Context) {
 }
 
 func (h *SupplierHandler) Create(c *gin.Context) {
-	var supplier models.Supplier
-	if err := c.ShouldBindJSON(&supplier); err != nil {
-		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid request body")
+	var req dtos.CreateSupplierRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.ValidationErrorResponse(c, err)
 		return
 	}
 
-	if err := h.db.Create(&supplier).Error; err != nil {
-		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to create supplier")
+	supplier, err := h.service.Create(req)
+	if err != nil {
+		if err.Error() == "email already exists" {
+			utils.ErrorResponse(c, http.StatusConflict, err.Error())
+		} else {
+			utils.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		}
 		return
 	}
 
@@ -55,20 +64,16 @@ func (h *SupplierHandler) Create(c *gin.Context) {
 
 func (h *SupplierHandler) Update(c *gin.Context) {
 	id := c.Param("id")
-	var supplier models.Supplier
-	if err := h.db.First(&supplier, "id = ?", id).Error; err != nil {
-		utils.ErrorResponse(c, http.StatusNotFound, "Supplier not found")
+
+	var req dtos.UpdateSupplierRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		utils.ValidationErrorResponse(c, err)
 		return
 	}
 
-	var updateData models.Supplier
-	if err := c.ShouldBindJSON(&updateData); err != nil {
-		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid request body")
-		return
-	}
-
-	if err := h.db.Model(&supplier).Updates(updateData).Error; err != nil {
-		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to update supplier")
+	supplier, err := h.service.Update(id, req)
+	if err != nil {
+		utils.ErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -77,13 +82,8 @@ func (h *SupplierHandler) Update(c *gin.Context) {
 
 func (h *SupplierHandler) Delete(c *gin.Context) {
 	id := c.Param("id")
-	var supplier models.Supplier
-	if err := h.db.First(&supplier, "id = ?", id).Error; err != nil {
-		utils.ErrorResponse(c, http.StatusNotFound, "Supplier not found")
-		return
-	}
 
-	if err := h.db.Delete(&supplier).Error; err != nil {
+	if err := h.service.Delete(id); err != nil {
 		utils.ErrorResponse(c, http.StatusInternalServerError, "Failed to delete supplier")
 		return
 	}

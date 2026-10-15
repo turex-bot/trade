@@ -7,9 +7,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+	"timberflow-api/internal/utils"
 )
-
-// Fix Issue #16: Health check endpoint for monitoring
 
 type HealthHandler struct {
 	db *gorm.DB
@@ -20,12 +19,12 @@ func NewHealthHandler(db *gorm.DB) *HealthHandler {
 }
 
 type HealthResponse struct {
-	Status    string            `json:"status"`
-	Timestamp time.Time         `json:"timestamp"`
-	Uptime    string            `json:"uptime"`
-	Version   string            `json:"version"`
-	Database  string            `json:"database"`
-	System    SystemHealth      `json:"system"`
+	Status    string       `json:"status"`
+	Timestamp time.Time    `json:"timestamp"`
+	Uptime    string       `json:"uptime"`
+	Version   string       `json:"version"`
+	Database  string       `json:"database"`
+	System    SystemHealth `json:"system"`
 }
 
 type SystemHealth struct {
@@ -37,15 +36,12 @@ type SystemHealth struct {
 
 var startTime = time.Now()
 
-// HealthCheck returns the health status of the application
 func (h *HealthHandler) HealthCheck(c *gin.Context) {
-	// Check database connection
 	dbStatus := "healthy"
 	if err := h.db.Exec("SELECT 1").Error; err != nil {
 		dbStatus = "unhealthy"
 	}
 
-	// Get memory stats
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
 
@@ -63,17 +59,15 @@ func (h *HealthHandler) HealthCheck(c *gin.Context) {
 		},
 	}
 
-	// If database is unhealthy, return 503
 	if dbStatus != "healthy" {
 		response.Status = "unhealthy"
 		c.JSON(http.StatusServiceUnavailable, response)
 		return
 	}
 
-	c.JSON(http.StatusOK, response)
+	utils.SuccessResponse(c, http.StatusOK, "Health check successful", response)
 }
 
-// formatBytes formats bytes to human readable string
 func formatBytes(bytes uint64) string {
 	const unit = 1024
 	if bytes < unit {
