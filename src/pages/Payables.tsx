@@ -84,7 +84,7 @@ export default function Payables() {
                   <th>Tanggal</th>
                   <th>Supplier</th>
                   <th className="text-right">Volume</th>
-                  <th className="text-right">Harga Beli</th>
+                  <th className="text-right">Harga Jual</th>
                   <th className="text-right">Margin</th>
                   <th className="text-right">Bayar ke Supplier</th>
                   <th className="text-center">Status</th>
@@ -132,7 +132,7 @@ export default function Payables() {
           <div className="space-y-5">
             <div className="bg-[#fef2f2] rounded-lg p-4 border border-[#fecaca] space-y-3">
               <div className="flex items-center justify-between"><p className="text-[11px] text-[#64748b]">Total Volume</p><p className="text-[13px] font-semibold text-[#0f172a]">{formatVolume(selectedOrder.totalVolume)} m³</p></div>
-              <div className="flex items-center justify-between"><p className="text-[11px] text-[#64748b]">Total - PPH 22 (Harga Beli)</p><p className="text-[13px] font-medium text-[#0f172a]">{formatCurrency(calculateHargaBeli(selectedOrder))}</p></div>
+              <div className="flex items-center justify-between"><p className="text-[11px] text-[#64748b]">Total - PPH 22 (Harga Jual)</p><p className="text-[13px] font-medium text-[#0f172a]">{formatCurrency(calculateHargaBeli(selectedOrder))}</p></div>
               <div className="flex items-center justify-between"><p className="text-[11px] text-[#64748b]">Margin Trader ({formatVolume(selectedOrder.totalVolume)} m³ × Rp15)</p><p className="text-[13px] font-medium text-[#f59e0b]">- {formatCurrency(selectedOrder.totalVolume * TRADER_MARGIN_PER_M3)}</p></div>
               <div className="pt-3 border-t border-[#fecaca] flex items-center justify-between"><p className="text-[12px] font-semibold text-[#dc2626]">Total Bayar ke Supplier</p><p className="text-[18px] font-bold text-[#dc2626]">{formatCurrency(calculateTotalPayable(selectedOrder))}</p></div>
             </div>
@@ -145,7 +145,7 @@ export default function Payables() {
         {selectedOrder && (
           <div className="space-y-4">
             <div className="bg-[#fef2f2] rounded-lg p-4 border border-[#fecaca] space-y-2">
-              <div className="flex items-center justify-between text-[12px]"><span className="text-[#64748b]">Total - PPH 22 (Harga Beli):</span><span className="text-[#0f172a]">{formatCurrency(calculateHargaBeli(selectedOrder))}</span></div>
+              <div className="flex items-center justify-between text-[12px]"><span className="text-[#64748b]">Total - PPH 22 (Harga Jual):</span><span className="text-[#0f172a]">{formatCurrency(calculateHargaBeli(selectedOrder))}</span></div>
               <div className="flex items-center justify-between text-[12px]"><span className="text-[#64748b]">Margin Trader:</span><span className="text-[#f59e0b]">- {formatCurrency(selectedOrder.totalVolume * TRADER_MARGIN_PER_M3)}</span></div>
               <div className="pt-2 border-t border-[#fecaca] flex items-center justify-between"><span className="text-[13px] font-semibold text-[#dc2626]">Bayar ke Supplier:</span><span className="text-[20px] font-bold text-[#dc2626]">{formatCurrency(calculateTotalPayable(selectedOrder))}</span></div>
             </div>
